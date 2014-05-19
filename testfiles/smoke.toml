@@ -1,0 +1,16 @@
+# Basic smoke-test for Grapnel
+# Exercises basic install facilities and specifcation parsing
+
+[deps.timber]
+import = "github.com/ngmoco/timber"
+
+[deps.memcache]
+import = "github.com/bradfitz/gomemcache"
+tag = "release.r60"
+
+[deps.mux]
+import = "github.com/gorilla/mux"
+
+[deps.toml]
+import = "github.com/pelletier/go-toml"
+commit = "23d36c08ab90f4957ae8e7d781907c368f5454dd"

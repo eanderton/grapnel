@@ -1,0 +1,2 @@
+[deps.fake]
+import = "github.com/eanderton/foobar"

@@ -1,6 +1,7 @@
 package grapnel
 
 import (
+  "github.com/BurntSushi/toml"
   "os"
   so "stackoverflow"
   "io/ioutil"
@@ -132,3 +133,17 @@ func CopyFileTree(dest string, src string, ignore string) error {
   })
 }
 
+func LoadTomlFile(filename string, obj interface{}) {
+  reader, err := os.Open(filename)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer reader.Close()
+  data, err := ioutil.ReadAll(reader)
+  if err != nil {
+    log.Fatal(err)
+  }
+  if _, err := toml.Decode(string(data[:]), obj); err != nil {
+    log.Fatal(err)
+  }
+}

@@ -8,13 +8,6 @@ import (
   log "github.com/ngmoco/timber"
 )
 
-
-type SCM interface {
-  MatchDependencySpec(spec *Spec) bool
-  ValidateDependencySpec(spec *Spec) error
-  InstallDependency(spec *Spec, targetPath string) error
-}
-
 type GitSCM struct {
   supportedHosts map[string]string
   supportedProtocols []string

@@ -11,16 +11,14 @@ import (
 type Spec struct {
   Name string
   Import string
-  Url *url.URL
+  Url *url.URL  `toml:"-"`
+  RawUrl string `toml:"url"`
   Type string
   Branch string
   Commit string
   Tag string
+  Scm SCM      `toml:"-"`
 }
-
-var validSpecTypes = map[string]bool{
-  "git": true, "hg": true, "svn": true,
-} 
 
 func getString(config map[string]interface{}, key string) string {
   if value, ok := config[key]; ok {
@@ -29,39 +27,21 @@ func getString(config map[string]interface{}, key string) string {
   return ""
 }
 
-func NewSpec(name string, config map[string]interface{}) (*Spec, error) {
-  spec := &Spec{
-    Name: name,
-    Import: getString(config, "import"),
-    Type: getString(config, "type"),
-    Branch: getString(config, "branch"),
-    Commit: getString(config, "commit"),
-    Tag: getString(config, "tag"),
-  }
-
+func (self *Spec) InitSpec() error {
   // validate url and import
-  urlValue := getString(config, "url")
-  if urlValue != "" {
-    if url, err := url.Parse(urlValue); err == nil {
-      spec.Url = url 
+  if self.RawUrl != "" {
+    if url, err := url.Parse(self.RawUrl); err == nil {
+      self.Url = url 
     } else {
-      return nil, err
+      return err
     }
-    if spec.Import == "" {
-      spec.Import = spec.Url.Host + "/" + spec.Url.Path
+    if self.Import == "" {
+      self.Import = self.Url.Host + "/" + self.Url.Path
     }
-  } else if spec.Import == "" {
-    return nil, errors.New("Must have an 'import' or 'url'")
+  } else if self.Import == "" {
+    return errors.New("Must have an 'import' or 'url'")
   }
-
-  // validate type
-  if spec.Type != "" {
-    if _, ok := validSpecTypes[spec.Type]; !ok {
-        return nil, errors.New("Invalid type: '" + spec.Type + "'")
-    }
-  }
-
-  return spec, nil
+  return nil
 }
 
 // Serializes the specification to a writer in TOML format

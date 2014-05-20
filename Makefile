@@ -15,6 +15,6 @@ unittest:
 	GOPATH='$(PWD)'; go test grapnel
 
 smoketest: grapnel
-	./grapnel install -c testfiles/smoke.toml -t $(TESTARGET) -v
+	./grapnel install -c testfiles/smoke.toml -t $(TESTTARGET) -v
 
-.PHONY: all, clean, smoketest, unittest
+.PHONY: all grapnel clean smoketest unittest

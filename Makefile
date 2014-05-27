@@ -9,10 +9,10 @@ clean:
 	-rm -rf $(TESTTARGET)
 
 grapnel:
-	GOPATH='$(PWD)'; go build -o grapnel grapnel/cmd 
+	GOPATH='$(PWD)' go build -o grapnel grapnel/cmd 
 
 unittest:
-	GOPATH='$(PWD)'; go test grapnel
+	GOPATH='$(PWD)' go test grapnel
 
 smoketest: grapnel
 	./grapnel install -c testfiles/smoke.toml -t $(TESTTARGET) -v

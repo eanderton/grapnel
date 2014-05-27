@@ -5,6 +5,7 @@ import (
   "os"
   "path/filepath"
   "net/url"
+  "io/ioutil"
   log "github.com/ngmoco/timber"
 )
 
@@ -27,20 +28,20 @@ func NewGitSCM() *GitSCM {
   return self
 }
 
-// Returns true if the spec is supported by this SCM
-func (self *GitSCM) MatchDependencySpec(spec *Spec) bool {
-  if spec.Type == "git" {
+// Returns true if the dep is supported by this SCM
+func (self *GitSCM) MatchDependency(dep *Dependency) bool {
+  if dep.Type == "git" {
     return true
   }
-  if spec.Url != nil {
-    if spec.Url.Scheme == "git" {
+  if dep.Url != nil {
+    if dep.Url.Scheme == "git" {
       return true
     }
-    if _, ok := self.supportedHosts[spec.Url.Host]; ok {
+    if _, ok := self.supportedHosts[dep.Url.Host]; ok {
       return true
     }
   } else {
-    parts := strings.Split(spec.Import, "/")
+    parts := strings.Split(dep.Import, "/")
     if len(parts) > 0 {
       if _, ok := self.supportedHosts[parts[0]]; ok {
         return true
@@ -50,81 +51,77 @@ func (self *GitSCM) MatchDependencySpec(spec *Spec) bool {
   return false
 }
 
-func (self *GitSCM) ValidateDependencySpec(spec *Spec) error {
-  if spec.Tag != "" && spec.Commit != "" {
-    return log.Error("Cannot have both a Tag and a Commit specified.")
+func (self *GitSCM) ValidateDependency(dep *Dependency) error {
+  if dep.Tag != "" && dep.Commit != "" {
+    return log.Error("Cannot have both a Tag and a Commit depified.")
   }
   return nil
 }
 
-func (self *GitSCM) InstallDependency(spec *Spec, targetPath string) error {
-  chain := NewFnChain()
-  defer chain.Invoke()
+func (self *GitSCM) InstallDependency(dep *Dependency, targetPath string) error {
+  log.Info("Processing %s", dep.Name)
 
-  log.Info("Processing %s", spec.Name)
-
-  tempRoot, err := createTempDir(chain)
+  // create a dedicated directory and a context for commands
+  tempRoot, err := ioutil.TempDir("","")
   if err != nil {
     return err
   }
+  defer os.RemoveAll(tempRoot) 
+  cmd := NewRunContext(tempRoot)
 
-  // move to the temporary directory and defer returning to that directory 
-  if err := pushDir(tempRoot, chain); err != nil {
-    return err
-  }
-  if err := RunCmd("git","init"); err != nil {
+  if err := cmd.Run("git","init"); err != nil {
     return log.Error("Could not init temporary git repo")
   }
 
-  // use the configured url and acquire the specified branch
-  if spec.Branch == "" {
-    spec.Branch = "master"
+  // use the configured url and acquire the depified branch
+  if dep.Branch == "" {
+    dep.Branch = "master"
   }
-  log.Info("Fetching remote data for %s", spec.Name)
-  if spec.Url == nil {
+  log.Info("Fetching remote data for %s", dep.Name)
+  if dep.Url == nil {
     // try all supported protocols against a URL composed from the import
     for _, protocol := range self.supportedProtocols {
-      packageUrl := protocol + "://" + spec.Import
+      packageUrl := protocol + "://" + dep.Import
       log.Warn("Synthesizing url from import: '%s'", packageUrl)
-       if err := RunCmd("git","fetch", "--tags", packageUrl, spec.Branch); err != nil {
+       if err := cmd.Run("git","fetch", "--tags", packageUrl, dep.Branch); err != nil {
         log.Warn("Failed to fetch: '%s'", packageUrl)
         continue
       }
-      spec.Url, _ = url.Parse(packageUrl)  // pin URL
+      dep.Url, _ = url.Parse(packageUrl)  // pin URL
       break
     }
     if err != nil {
-      return log.Error("Cannot download dependency: '%s'", spec.Import)
+      return log.Error("Cannot download dependency: '%s'", dep.Import)
     }
-  } else if err := RunCmd("git","fetch", "--tags", spec.Url.String(), spec.Branch); err != nil {
-    return log.Error("Cannot download dependency: '%s'", spec.Url.String())
+  } else if err := cmd.Run("git","fetch", "--tags", dep.Url.String(), dep.Branch); err != nil {
+    return log.Error("Cannot download dependency: '%s'", dep.Url.String())
   }
 
   // advance to head on fetched branch
-  if err := RunCmd("git","checkout", "FETCH_HEAD"); err != nil {
+  if err := cmd.Run("git","checkout", "FETCH_HEAD"); err != nil {
     return log.Error("Failed to checkout FETCH_HEAD on branch")
   }
-  // optionally check out a specific commit
-  if spec.Commit != "" {
-    if err := RunCmd("git","checkout", spec.Commit); err != nil {
-      return log.Error("Failed to checkout commit: '%s'", spec.Commit)
+  // optionally check out a depific commit
+  if dep.Commit != "" {
+    if err := cmd.Run("git","checkout", dep.Commit); err != nil {
+      return log.Error("Failed to checkout commit: '%s'", dep.Commit)
     }
-  } else if spec.Tag != "" {
-    if err := RunCmd("git","checkout", spec.Tag); err != nil {
-      return log.Error("Failed to checkout tag: '%s'", spec.Tag)
+  } else if dep.Tag != "" {
+    if err := cmd.Run("git","checkout", dep.Tag); err != nil {
+      return log.Error("Failed to checkout tag: '%s'", dep.Tag)
     }
   }
 
   // claim success here and pin the commit hash
-  if data, err := RunCmdOut("git","rev-parse", "HEAD"); err != nil {
+  if err := cmd.Run("git","rev-parse", "HEAD"); err != nil {
     return log.Error("Failed to acquire commit hash for dependency")
   } else {
-    spec.Tag = ""
-    spec.Commit = strings.TrimSpace(data)
+    dep.Tag = ""
+    dep.Commit = strings.TrimSpace(cmd.CombinedOutput)
   }
   
   // set up root target dir
-  importPath := filepath.Join(targetPath, spec.Import)
+  importPath := filepath.Join(targetPath, dep.Import)
   if err := os.MkdirAll(importPath, 0755); err != nil {
     log.Info("%s", err.Error())
     return log.Error("Could not create target directory: '%s'", importPath)

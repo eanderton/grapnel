@@ -8,7 +8,7 @@ import (
   "fmt"
 )
 
-type Spec struct {
+type Dependency struct {
   Name string
   Import string
   Url *url.URL  `toml:"-"`
@@ -18,6 +18,7 @@ type Spec struct {
   Commit string
   Tag string
   Scm SCM      `toml:"-"`
+  Complete *Condition `toml:"-"`
 }
 
 func getString(config map[string]interface{}, key string) string {
@@ -27,7 +28,7 @@ func getString(config map[string]interface{}, key string) string {
   return ""
 }
 
-func (self *Spec) InitSpec() error {
+func (self *Dependency) Init() error {
   // validate url and import
   if self.RawUrl != "" {
     if url, err := url.Parse(self.RawUrl); err == nil {
@@ -41,11 +42,12 @@ func (self *Spec) InitSpec() error {
   } else if self.Import == "" {
     return errors.New("Must have an 'import' or 'url'")
   }
+  self.Complete = NewCondition()
   return nil
 }
 
 // Serializes the specification to a writer in TOML format
-func (self *Spec) ToToml(writer io.Writer) {
+func (self *Dependency) ToToml(writer io.Writer) {
   fmt.Fprintf(writer, "\n[deps.%s]\n", self.Name)
   if self.Type != "" {
     fmt.Fprintf(writer, "type = \"%s\"\n", self.Type)

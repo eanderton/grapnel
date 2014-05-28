@@ -14,29 +14,63 @@ import (
   . "grapnel"
   "github.com/spf13/cobra"
   "path/filepath"
-  log "github.com/ngmoco/timber"
   "go/build"
-  "sync"
   "os"
   "fmt"
+  log "github.com/ngmoco/timber"
 )
 
+// application configurables
 var verbose bool
 var quiet bool
 var configFileName string
 var targetPath string
 
 // set all supported SCM processors
-var scms map[string]SCM = map[string]SCM{
+var resolvers map[string]Resolver = map[string]Resolver{
   "git": NewGitSCM(),
+  "std": NewStdResolver(),
 }
 
-type DependencyMap map[string]*Dependency
+// toml configuration file and .lock file
+type dependencyConfig struct {
+  Deps map[string]*Dependency
+}
 
+// processing stages for resolution
 var stagedDeps = NewDepArray()
-var unresolvedDeps = NewDepArray()
+var unresolvedDeps = NewDepSet()
 var resolvedDeps = NewDepArray()
-var finalizedDeps = make(DependencyMap)
+var finalizedDeps = NewDepSet()
+
+func cleanupDeps() {
+  cleanFn := func(dep *Dependency) bool {
+    dep.Destroy()
+    return true
+  }
+  stagedDeps.Each(cleanFn)
+  unresolvedDeps.Each(cleanFn)
+  resolvedDeps.Each(cleanFn)
+  finalizedDeps.Each(cleanFn)
+}
+
+func initLogging() {
+  // configure logging level based on flags
+  var logLevel log.Level
+  if quiet {
+    logLevel = log.ERROR
+  } else if verbose {
+    logLevel = log.INFO
+  } else {
+    logLevel = log.WARNING
+  }
+  // set a vanilla console writer
+  log.AddLogger(log.ConfigLogger{
+    LogWriter: new(log.ConsoleWriter),
+    Level:     logLevel,
+    Formatter: log.NewPatFormatter("[%L] %M"),
+  })
+}
 
 /*
   Dependencies 'breathe' in and out of the above queues until
@@ -59,65 +93,59 @@ var finalizedDeps = make(DependencyMap)
   5. The finalized dependency map is written to a lockfile.
 */
 
-
-func resolveDependency(dep *Dependency, installTarget string) {
-  // find an SCM to resolve this dependency  
-  for _, scm := range scms {
-    if scm.MatchDependency(dep) {
-      if err := scm.ValidateDependency(dep); err != nil {
+//TODO: move into unified match+configure method on the SCM
+func setResolver(dep *Dependency) {
+  var resolver Resolver = nil
+  for _, resolver = range resolvers {
+    if resolver.MatchDependency(dep) {
+      if err := resolver.ValidateDependency(dep); err != nil {
         log.Fatalf("Failed to validate dependency '%s'", dep.Import)
       }
-      dep.Scm = scm
+      break
     }
   }
-  if dep.Scm == nil {
-    log.Fatalf("Could not find compatible SCM for dependency '%s'", dep.Import)
+  if resolver == nil {
+    log.Fatalf("Could not find compatible resolver for dependency '%s'", dep.Import)
   }
-  if err := dep.Scm.InstallDependency(dep, installTarget); err != nil {
-    log.Fatalf("Failed to install dependency: '%s'", dep.Import)
+  dep.Resolver = resolver
+}
+
+// Returns true if a should replace b; panic if no resolution can be found 
+func resolveCollision(a *Dependency, b *Dependency) bool {
+  log.Info("Resolving collision: '%s'", a.Import)
+  //TODO: implement me - resolution should be SCM specific
+  return true
+}
+
+//TODO: merge resolver methods into the dependency itself
+func resolveDependency(dep *Dependency) {
+  if err := dep.Resolver.FetchDependency(dep); err != nil {
+    log.Fatalf("Failed to fetch dependency: '%s'", dep.Import)
   }
-  
+ 
   // look for additional dependencies
-  // TODO: actually log these as staged
-  installPath := filepath.Join(installTarget, dep.Import)
-  pkg, err := build.ImportDir(installPath, 0)
-  if err != nil {
-    log.Error(err)
-    log.Error("Could not gather import information for dependency '%s'", dep.Name)
-  }
-  for _, importName := range pkg.Imports {
-    fmt.Printf("%s depends on %s\n",dep.Name, importName)
-    //stagedDeps.Add(&Dependency{Import: importName})
+  if dep.Type != "std" { 
+    pkg, err := build.ImportDir(dep.TempRoot, 0)
+    if err != nil {
+      log.Error("", err)
+      log.Error("Could not gather import information for dependency '%s'", dep.Import)
+    }
+    for _, importName := range pkg.Imports {
+      newDep := &Dependency{Import: importName}
+      setResolver(newDep)
+      stagedDeps.Push(newDep)
+    }
   }
 
   // mark this as resolved
-  log.Info("Resolved: '%s'", dep.Import)
+  if dep.Type != "std" {
+    log.Info("Resolved: '%s'", dep.Import)
+  }
   resolvedDeps.Push(dep) 
 }
 
-func initLogging() {
-  // configure logging level based on flags
-  var logLevel log.Level
-  if quiet {
-    logLevel = log.ERROR
-  } else if verbose {
-    logLevel = log.INFO
-  } else {
-    logLevel = log.WARNING
-  }
-  // set a vanilla console writer
-  log.AddLogger(log.ConfigLogger{
-    LogWriter: new(log.ConsoleWriter),
-    Level:     logLevel,
-    Formatter: log.NewPatFormatter("[%L] %M"),
-  })
-}
-
-type dependencyConfig struct {
-  Deps map[string]*Dependency
-}
-
 func installFn(cmd *cobra.Command, args []string) {
+  defer cleanupDeps()
   initLogging()
   config := &dependencyConfig{}
   LoadTomlFile(configFileName, config)
@@ -136,6 +164,7 @@ func installFn(cmd *cobra.Command, args []string) {
       log.Error(err)
       log.Fatalf("Failed to init dependency '%s'", name)
     }
+    setResolver(dep) 
     stagedDeps.Push(dep)
   }
   stagedDeps.Each(func(dep *Dependency) bool {
@@ -144,42 +173,51 @@ func installFn(cmd *cobra.Command, args []string) {
   })
 
   for stagedDeps.Len() > 0 { //|| unresolvedDeps.Len() > 0 {
-    var wg sync.WaitGroup
     // bounce staged to unresolved
-    // TODO: be smarter about handling collisions
-    var unresolvedMap DependencyMap
     stagedDeps.Each(func(dep *Dependency) bool {
-      if _, ok := unresolvedMap[dep.Import]; ok {
-        log.Fatalf("Import collision: '%s'", dep.Import)
+      // resolve collision with other unresolved imports
+      if otherDep, ok := unresolvedDeps.Find(dep.Import); ok {
+        if replace := resolveCollision(dep, otherDep); replace {
+          unresolvedDeps.Remove(dep.Import)
+        } else {
+          return true  // keep the existing import
+        }
       }
-      unresolvedDeps.Push(dep)
+      // resolve collision with other finalized imoprts
+      if otherDep, ok := finalizedDeps.Find(dep.Import); ok {
+        if replace := resolveCollision(dep, otherDep); replace {
+          finalizedDeps.Remove(dep.Import)
+        } else {
+          return true  // keep the existing import
+        }
+      }
+      unresolvedDeps.Insert(dep)
       return true
     })
     stagedDeps.Clear()
-
+    
     // resolve all unresolved dependencies concurrently
     log.Info("resolving depenencies")
-    wg.Add(unresolvedDeps.Len())
-    unresolvedDeps.GoEach(func(dep *Dependency) {
-      resolveDependency(dep, installTarget)
-      wg.Done()
-    })
-
-    // wait until all the work is done
-    wg.Wait()
-    log.Info("all goroutines completed")
+    unresolvedDeps.GoEach(resolveDependency)
     unresolvedDeps.Clear()
 
     // bounce resolved deps to finalized
     resolvedDeps.Each(func(dep *Dependency) bool {
-      if _, ok := finalizedDeps[dep.Import]; ok {
-        log.Fatalf("Import already finalized: '%s'", dep.Import)
+      if _, ok := finalizedDeps.Find(dep.Import); ok {
+        log.Fatal("Import already finalized: '%s'", dep.Import)
       }
       // record finalized dependency
-      finalizedDeps[dep.Import] = dep
+      finalizedDeps.Insert(dep)
       return true
     })
+    resolvedDeps.Clear()
   }
+
+  // install everything
+  finalizedDeps.Each(func(dep *Dependency) bool {
+    dep.Resolver.InstallDependency(dep, installTarget)
+    return true
+  })
 
   // log everything in the lockfile
   // TODO: make lockfile desintaion configurable
@@ -192,9 +230,10 @@ func installFn(cmd *cobra.Command, args []string) {
   if err != nil {
     log.Fatal(err)
   }
-  for _, dep := range finalizedDeps {
+  finalizedDeps.Each(func(dep *Dependency) bool {
     dep.ToToml(lockfile)
-  }
+    return true
+  })
   
   // crawl imports for more dependencies
   log.Info("Install complete")

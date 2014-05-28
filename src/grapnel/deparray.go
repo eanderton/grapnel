@@ -48,9 +48,7 @@ func (self *DepArray) Pull() *Dependency, err {
 }
 */
 
-type EachFn func(dep *Dependency) bool
-
-func (self *DepArray) Each(fn EachFn) {
+func (self *DepArray) Each(fn func(*Dependency) bool) {
   self.mutex.RLock()
   for ii := 0; ii < len(self.array); ii++ {
     dep := self.array[ii]
@@ -64,14 +62,17 @@ func (self *DepArray) Each(fn EachFn) {
 }
 
 
-type GoEachFn func(dep *Dependency)
-
-func (self *DepArray) GoEach(fn GoEachFn) {
-  self.Each(func(dep *Dependency) bool {
+func (self *DepArray) GoEach(fn func(*Dependency)) {
+  var wg sync.WaitGroup
+  self.mutex.RLock()
+  wg.Add(self.Len())
+  for _,dep := range self.array {
     go func() {
       fn(dep)
+      wg.Done()
     }()
-    return true
-  })
+  }
+  self.mutex.RUnlock()
+  wg.Wait()
 }
 

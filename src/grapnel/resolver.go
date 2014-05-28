@@ -1,8 +1,9 @@
 package grapnel
 
-type SCM interface {
-  MatchDependency(spec *Dependency) bool
-  ValidateDependency(spec *Dependency) error
-  InstallDependency(spec *Dependency, targetPath string) error
+type Resolver interface {
+  MatchDependency(dep *Dependency) bool
+  ValidateDependency(dep *Dependency) error
+  FetchDependency(dep *Dependency) error
+  InstallDependency(dep *Dependency, targetPath string) error
 }
 

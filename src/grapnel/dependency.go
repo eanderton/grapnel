@@ -4,6 +4,7 @@ import (
   "net/url"
   "errors"
   "io"
+  "os"
   "strings"
   "fmt"
 )
@@ -11,14 +12,14 @@ import (
 type Dependency struct {
   Name string
   Import string
-  Url *url.URL  `toml:"-"`
-  RawUrl string `toml:"url"`
+  Url *url.URL        `toml:"-"`
+  RawUrl string       `toml:"url"`
   Type string
   Branch string
   Commit string
   Tag string
-  Scm SCM      `toml:"-"`
-  Complete *Condition `toml:"-"`
+  Resolver Resolver   `toml:"-"`
+  TempRoot string     `toml:"-"`
 }
 
 func getString(config map[string]interface{}, key string) string {
@@ -26,6 +27,13 @@ func getString(config map[string]interface{}, key string) string {
     return strings.TrimSpace(value.(string))
   }
   return ""
+}
+
+func (self *Dependency) Destroy() {
+  if self.TempRoot != "" {
+    os.RemoveAll(self.TempRoot)
+    self.TempRoot = ""
+  }
 }
 
 func (self *Dependency) Init() error {
@@ -42,12 +50,15 @@ func (self *Dependency) Init() error {
   } else if self.Import == "" {
     return errors.New("Must have an 'import' or 'url'")
   }
-  self.Complete = NewCondition()
   return nil
 }
 
 // Serializes the specification to a writer in TOML format
 func (self *Dependency) ToToml(writer io.Writer) {
+  // don't write a dependency entry for standard imports
+  if self.Type == "std" {
+    return
+  }
   fmt.Fprintf(writer, "\n[deps.%s]\n", self.Name)
   if self.Type != "" {
     fmt.Fprintf(writer, "type = \"%s\"\n", self.Type)

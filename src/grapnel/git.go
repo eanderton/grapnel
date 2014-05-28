@@ -58,15 +58,16 @@ func (self *GitSCM) ValidateDependency(dep *Dependency) error {
   return nil
 }
 
-func (self *GitSCM) InstallDependency(dep *Dependency, targetPath string) error {
-  log.Info("Processing %s", dep.Name)
+func (self *GitSCM) FetchDependency(dep *Dependency) error {
+  log.Info("Processing %s", dep.Import)
+  // pin type
+  dep.Type = "git"
 
   // create a dedicated directory and a context for commands
   tempRoot, err := ioutil.TempDir("","")
   if err != nil {
     return err
   }
-  defer os.RemoveAll(tempRoot) 
   cmd := NewRunContext(tempRoot)
 
   if err := cmd.Run("git","init"); err != nil {
@@ -77,7 +78,7 @@ func (self *GitSCM) InstallDependency(dep *Dependency, targetPath string) error 
   if dep.Branch == "" {
     dep.Branch = "master"
   }
-  log.Info("Fetching remote data for %s", dep.Name)
+  log.Info("Fetching remote data for %s", dep.Import)
   if dep.Url == nil {
     // try all supported protocols against a URL composed from the import
     for _, protocol := range self.supportedProtocols {
@@ -119,14 +120,19 @@ func (self *GitSCM) InstallDependency(dep *Dependency, targetPath string) error 
     dep.Tag = ""
     dep.Commit = strings.TrimSpace(cmd.CombinedOutput)
   }
-  
+  dep.TempRoot = tempRoot
+  return nil
+}
+
+func (self *GitSCM) InstallDependency(dep *Dependency, targetPath string) error {
   // set up root target dir
   importPath := filepath.Join(targetPath, dep.Import)
   if err := os.MkdirAll(importPath, 0755); err != nil {
     log.Info("%s", err.Error())
     return log.Error("Could not create target directory: '%s'", importPath)
   }
-  if err := CopyFileTree(importPath, tempRoot, `\.git|\.gitignore`); err != nil {
+  // move everything over
+  if err := CopyFileTree(importPath, dep.TempRoot, `\.git|\.gitignore`); err != nil {
     log.Info("%s", err.Error())
     return log.Error("Error while walking dependency file tree")
   }

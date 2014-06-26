@@ -1,0 +1,2 @@
+[deps.channels]
+import = "github.com/eapache/channels"

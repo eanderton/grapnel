@@ -1,65 +1,87 @@
 package grapnel
 
 import (
-  "net/url"
-  "errors"
-  "io"
-  "os"
-  "strings"
+  toml "github.com/pelletier/go-toml"
   "fmt"
+  "net/url"
+  "io"
+  log "github.com/ngmoco/timber"
 )
 
 type Dependency struct {
   Name string
   Import string
-  Url *url.URL        `toml:"-"`
-  RawUrl string       `toml:"url"`
+  Url *url.URL
   Type string
   Branch string
-  Commit string
-  Tag string
-  Resolver Resolver   `toml:"-"`
-  TempRoot string     `toml:"-"`
+  Tag string  // alased to: commit and revision
+  *VersionSpec
 }
 
-func getString(config map[string]interface{}, key string) string {
-  if value, ok := config[key]; ok {
-    return strings.TrimSpace(value.(string))
+func NewDependency(importStr string, urlStr string, versionStr string) (*Dependency, error) {
+  var err error
+  dep := &Dependency {
+    Import: importStr,
   }
-  return ""
-}
 
-func (self *Dependency) Destroy() {
-  if self.TempRoot != "" {
-    os.RemoveAll(self.TempRoot)
-    self.TempRoot = ""
+  if urlStr == "" {
+    dep.Url = nil
+  } else if dep.Url, err = url.Parse(urlStr); err != nil {
+    return nil, err
+  } else if dep.Url.Scheme == "" {
+    return nil, fmt.Errorf("Url must have a scheme specified.")
   }
-}
 
-func (self *Dependency) Init() error {
-  // validate url and import
-  if self.RawUrl != "" {
-    if url, err := url.Parse(self.RawUrl); err == nil {
-      self.Url = url 
+  if versionStr == "" {
+    dep.VersionSpec = NewVersionSpec(OpEq, -1, -1, -1)
+  } else if dep.VersionSpec, err = ParseVersionSpec(versionStr); err != nil {
+    return nil, err
+  }
+
+  // figure out import from URL if not set
+  if dep.Import == "" {
+    if dep.Url == nil {
+      return nil, fmt.Errorf("Must have an 'import' or 'url' specified")
     } else {
-      return err
+      dep.Import = dep.Url.Host + "/" + dep.Url.Path
     }
-    if self.Import == "" {
-      self.Import = self.Url.Host + "/" + self.Url.Path
-    }
-  } else if self.Import == "" {
-    return errors.New("Must have an 'import' or 'url'")
   }
-  return nil
+
+  return dep, nil
 }
 
-// Serializes the specification to a writer in TOML format
-func (self *Dependency) ToToml(writer io.Writer) {
-  // don't write a dependency entry for standard imports
-  if self.Type == "std" {
-    return
+func (self *Dependency) Reconcile(other *Dependency) (*Dependency, error) {
+  if self.VersionSpec.Outranks(other.VersionSpec) {
+    return self, nil
+  } else if other.VersionSpec.Outranks(self.VersionSpec) {
+    return other, nil
   }
+  return nil, log.Error("Cannot reconcile dependencies for '%v'", self.Import)
+}
+
+func NewDependencyFromToml(name string, tree *toml.TomlTree) (*Dependency, error) {
+  var err error = nil
+  var dep *Dependency
+
+  dep, err = NewDependency(
+    tree.GetDefault("import", "").(string),
+    tree.GetDefault("url", "").(string),
+    tree.GetDefault("version", "").(string),
+  )
+  if err != nil {
+    return nil, err
+  }
+  dep.Name = name
+  dep.Type = tree.GetDefault("type", "").(string)
+  dep.Branch = tree.GetDefault("branch", "").(string)
+  dep.Tag = tree.GetDefault("tag", "").(string)
+
+  return dep, nil
+}
+
+func (self *Dependency) ToToml(writer io.Writer) { 
   fmt.Fprintf(writer, "\n[deps.%s]\n", self.Name)
+  fmt.Fprintf(writer, "version = \"%v\"\n", self.VersionSpec)
   if self.Type != "" {
     fmt.Fprintf(writer, "type = \"%s\"\n", self.Type)
   }
@@ -75,7 +97,5 @@ func (self *Dependency) ToToml(writer io.Writer) {
   if self.Tag != "" {
     fmt.Fprintf(writer, "tag = \"%s\"\n", self.Tag)
   }
-  if self.Commit != "" {
-    fmt.Fprintf(writer, "commit = \"%s\"\n", self.Commit)
-  }
 }
+

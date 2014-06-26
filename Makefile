@@ -2,7 +2,7 @@
 
 TESTTARGET := ./foobar
 PWD := $(shell pwd)
-all: grapnel
+all: unittest smoketest
 
 clean:
 	-rm -f grapnel
@@ -12,7 +12,7 @@ grapnel:
 	GOPATH='$(PWD)' go build -o grapnel grapnel/cmd 
 
 unittest:
-	GOPATH='$(PWD)' go test grapnel
+	GOPATH='$(PWD)' go test -v grapnel
 
 smoketest: grapnel
 	./grapnel install -c testfiles/smoke.toml -t $(TESTTARGET) -v

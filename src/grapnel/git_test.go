@@ -1,60 +1,110 @@
 package grapnel
 
 import (
+  "os"
   "testing"
-  "net/url"
+  "os/exec"
+  "path/filepath"
+  "bytes"
+  "bufio"
+  "strings"
+  "time"
+  log "github.com/ngmoco/timber"
 )
 
-func TestMatchDependency(t *testing.T) {
-  var urlValue *url.URL
-  git := NewGitSCM()
+func getTestDependencyData() []*Dependency {
+  return nil
+}
 
-  if !git.MatchDependency(&Dependency{
-    Import: "github.com/username/project",
-  }) {
-    t.Error("Failed supported host: github.com")
+var gitDaemon *exec.Cmd
+
+func startGitDaemon() (chan struct{}, error) {
+  ready := make(chan struct{})
+  if gitDaemon != nil {
+    go func(){
+      ready <- struct{}{}
+    }()
+    return ready, nil
   }
-  
-  if git.MatchDependency(&Dependency{
-    Import: "foobar.com/username/project",
-  }) {
-    t.Error("Failed unsupported host: foobar.com")
+  cwd, err := os.Getwd()
+  if err != nil {
+    return nil, err
   }
-  
-  if !git.MatchDependency(&Dependency{
-    Type: "git",
-  }) {
-    t.Error("Failed supported type: git")
+  basePath, err := filepath.Abs(cwd + "/../../testfiles")
+  if err != nil {
+    return nil, err
   }
+  log.Info("Using CWD: %v", basePath)
+  cmd := exec.Command("git", "daemon",
+    "--reuseaddr",
+    "--base-path=" + basePath,
+    "--port=9999",
+    "--export-all",
+    "--informative-errors",
+    "--verbose")
+  var outbuf bytes.Buffer
+  cmd.Stdout = bufio.NewWriter(&outbuf)
+  cmd.Stderr = cmd.Stdout
+  cmd.Dir = cwd
+    
+  // start the daemon
+  if err = cmd.Start(); err != nil {
+    return nil, err
+  }
+  gitDaemon = cmd
+
+  // signal that the daemon is ready to use
+  go func() {
+    for {
+      data := outbuf.String()
+      if strings.Contains(data, "Ready to rumble") {
+        <- time.After(1*time.Second)  // wait a second
+        os.Stdout.WriteString(data)
+        cmd.Stdout = os.Stdout
+        cmd.Stderr = os.Stderr
+        ready <- struct{}{}
+        return
+      }
+    }
+  }()
+
+  // wait for it to halt asynchronously
+  go func() {
+    log.Info("git daemon stopped: %v", gitDaemon.Wait())
+    gitDaemon = nil
+  }()
+
+  return ready, nil
+}
+
+func stopGitDaemon() {
+  if gitDaemon == nil {
+    return
+  }
+  gitDaemon.Process.Signal(os.Interrupt)
+}
+
+func TestGitResolver(t *testing.T) {
+  initTestLogging()
   
-  if git.MatchDependency(&Dependency{
-    Type: "foobar",
-  }) {
-    t.Error("Failed unsupported type: foobar")
+  defer stopGitDaemon()
+  if ready, err := startGitDaemon(); err != nil {
+    t.Error("%v", err)
+  } else {
+    <- ready  // wait until we're ready
   }
 
-  urlValue, _ = url.Parse("git://github.com/username/project")
-  if !git.MatchDependency(&Dependency{
-    Url: urlValue,
-  }) {
-    t.Error("Failed git protocol")
+  var err error
+  var dep *Dependency
+  dep, err = NewDependency("foo/bar/baz", "git://localhost:9999/gitrepo", "1.0")
+  if err != nil {
+    t.Error("%v", err)
   }
-  
-  urlValue, _ = url.Parse("https://github.com/username/project")
-  if !git.MatchDependency(&Dependency{
-    Url: urlValue,
-  }) {
-    t.Error("Failed supported host with protocol: https://github.com")
-  }
-} 
 
-func TestValidatehDependency(t *testing.T) {
-  git := NewGitSCM()
+  log.Info("version: %v", dep.VersionSpec.String())
 
-  if err := git.ValidateDependency(&Dependency{
-    Tag: "foo",
-    Commit: "bar",
-  }); err == nil {
-    t.Error("Failed disallowing conflicing details: tag + commit")
-  }
+//  var lib *Library
+  if _, err = GitResolver(dep); err != nil {
+    t.Error("%v", err)
+  } 
 }

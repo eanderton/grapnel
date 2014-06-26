@@ -1,10 +1,8 @@
 package grapnel
 
 import (
-  "github.com/BurntSushi/toml"
   "os"
   so "stackoverflow"
-  "io/ioutil"
   "os/exec"
   "path/filepath"
   "regexp"
@@ -25,6 +23,7 @@ func NewRunContext(workingDirectory string) *RunContext {
 func (self *RunContext) Run(cmd string, args... string) error {
   cmdObj := exec.Command(cmd, args...)
   cmdObj.Dir = self.WorkingDirectory
+  log.Debug("%v %v", cmd, args)
   out, err := cmdObj.CombinedOutput()
   self.CombinedOutput = string(out)
   if err != nil {
@@ -35,6 +34,13 @@ func (self *RunContext) Run(cmd string, args... string) error {
     }
   }
   return err
+}
+
+func (self *RunContext) Start(cmd string, args... string) (*exec.Cmd, error) {
+  cmdObj := exec.Command(cmd, args...)
+  cmdObj.Dir = self.WorkingDirectory
+  err := cmdObj.Start()
+  return cmdObj, err 
 }
 
 // Copies a file tree from src to dest
@@ -81,19 +87,4 @@ func CopyFileTree(dest string, src string, ignore string) error {
     }
     return nil 
   })
-}
-
-func LoadTomlFile(filename string, obj interface{}) {
-  reader, err := os.Open(filename)
-  if err != nil {
-    log.Fatal(err)
-  }
-  defer reader.Close()
-  data, err := ioutil.ReadAll(reader)
-  if err != nil {
-    log.Fatal(err)
-  }
-  if _, err := toml.Decode(string(data[:]), obj); err != nil {
-    log.Fatal(err)
-  }
 }

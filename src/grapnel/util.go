@@ -43,6 +43,12 @@ func (self *RunContext) Start(cmd string, args... string) (*exec.Cmd, error) {
   return cmdObj, err 
 }
 
+func (self *RunContext) MustRun(cmd string, args... string) {
+  if err := self.Run(cmd, args...); err != nil {
+    log.Fatal(self.CombinedOutput)
+  }
+}
+
 // Copies a file tree from src to dest
 func CopyFileTree(dest string, src string, ignore string) error {
   // create a callback for filtering

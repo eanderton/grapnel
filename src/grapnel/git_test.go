@@ -4,11 +4,13 @@ import (
   "os"
   "testing"
   "os/exec"
-  "path/filepath"
+  _ "path/filepath"
   "bytes"
   "bufio"
   "strings"
   "time"
+  "path"
+  "io/ioutil"
   log "github.com/ngmoco/timber"
 )
 
@@ -18,7 +20,7 @@ func getTestDependencyData() []*Dependency {
 
 var gitDaemon *exec.Cmd
 
-func startGitDaemon() (chan struct{}, error) {
+func startGitDaemon(basePath string) (chan struct{}, error) {
   ready := make(chan struct{})
   if gitDaemon != nil {
     go func(){
@@ -27,10 +29,6 @@ func startGitDaemon() (chan struct{}, error) {
     return ready, nil
   }
   cwd, err := os.Getwd()
-  if err != nil {
-    return nil, err
-  }
-  basePath, err := filepath.Abs(cwd + "/../../testfiles")
   if err != nil {
     return nil, err
   }
@@ -84,16 +82,51 @@ func stopGitDaemon() {
   gitDaemon.Process.Signal(os.Interrupt)
 }
 
+func BuildTestGitRepo(repoName string) string {
+  var err error
+  var basePath string
+  if basePath, err = ioutil.TempDir("",""); err != nil {
+    panic(err)
+  }
+  repoPath := path.Join(basePath, repoName)
+  if err = os.Mkdir(repoPath,0755); err != nil{
+    panic(err)
+  }
+
+  cmd := NewRunContext(repoPath)
+  for _, data := range [][]string {
+    {"git", "init"},
+    {"touch", "README"},
+    {"git", "add", "README"},
+    {"git", "commit", "-a", "-m", "first commit"},
+    {"git", "tag", "v1.0"}, 
+    {"touch", "foo.txt"},
+    {"git", "add", "foo.txt"},
+    {"git", "commit", "-a", "-m", "second commit"},
+    {"git", "tag", "v1.1"}, 
+  } {
+    cmd.MustRun(data[0], data[1:]...)
+  }
+  return basePath
+}
+
+
 func TestGitResolver(t *testing.T) {
   initTestLogging()
   
+  // construct a repo
+  basePath := BuildTestGitRepo("gitrepo")  
+  defer os.Remove(basePath)
+
+  // start a daemon to serve the repo
   defer stopGitDaemon()
-  if ready, err := startGitDaemon(); err != nil {
+  if ready, err := startGitDaemon(basePath); err != nil {
     t.Error("%v", err)
   } else {
     <- ready  // wait until we're ready
   }
 
+  // map a dependency to the repo
   var err error
   var dep *Dependency
   dep, err = NewDependency("foo/bar/baz", "git://localhost:9999/gitrepo", "1.0")
@@ -103,7 +136,7 @@ func TestGitResolver(t *testing.T) {
 
   log.Info("version: %v", dep.VersionSpec.String())
 
-//  var lib *Library
+  // test the resolver
   if _, err = GitResolver(dep); err != nil {
     t.Error("%v", err)
   } 

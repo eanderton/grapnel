@@ -50,16 +50,27 @@ func installFn(cmd *cobra.Command, args []string) {
   InitLogging()
   configurePipeline()
 
+  // TODO: resolve path for targetPath
+  log.Info("installing to: %v", targetPath) 
+  if err := os.MkdirAll(targetPath, 0755); err != nil {
+    log.Fatal(err)
+  }
+
   // get the dependencies from the config file
-  var err error
-  var deplist []*Dependency
-  deplist, err = loadDependencies(configFileName)
+  deplist, err := loadDependencies(configFileName)
   if err != nil {
     log.Fatal(err)
   }
   
+  var libs map [string]*Library
+  // cleanup
+  defer func() {
+    for _, lib := range libs {
+      lib.Destroy()
+    }  
+  }()
+  
   // resolve all the dependencies
-  var libs map[string]*Library
   libs, err = ResolveDependencies(deplist)
   if err != nil {
     log.Fatal(err)
@@ -71,20 +82,16 @@ func installFn(cmd *cobra.Command, args []string) {
 
   // write the library data out
   // TODO: make a part of a proper package file instead
-  log.Info("Writing package file.")
-  pkgFile, err := os.Open(path.Join(targetPath, "package.toml"))
+  log.Info("Writing lock file.")
+  pkgFile, err := os.Create(path.Join(targetPath, "grapnel-lock.toml"))
+  defer pkgFile.Close()
   if err != nil {
-    log.Fatal("Cannot open packge file: %v", err)
+    log.Fatal("Cannot open lock file: ", err)
   }
   for _, lib := range libs {
     lib.ToToml(pkgFile)
   }
-  pkgFile.Close()
   
-  // cleanup
-  for _, lib := range libs {
-    lib.Destroy()
-  }  
   log.Info("Install complete")
 }
 
@@ -139,6 +146,7 @@ func main() {
   rootCmd.PersistentFlags().StringVarP(&targetPath, "target", "t", "./src",
     "where to manage packages")
 
-  rootCmd.AddCommand(installCmd, updateCmd, infoCmd)
+//  rootCmd.AddCommand(installCmd, updateCmd, infoCmd)
+  rootCmd.AddCommand(installCmd)
   rootCmd.Execute()
 }

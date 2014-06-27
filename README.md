@@ -5,7 +5,7 @@ A dependency management solution for the Go Programming Language.  At the moment
 only the basic 'install' mode is supported for github repositories.  Support for
 other SCM types, and other major repo sites, is planned.
 
-```bash
+```
 $ ./grapnel 
 
 Usage: 
@@ -46,7 +46,7 @@ projects from live repos, but it falls short in the following circumstances:
 
 In all of these cases, 'go get's default behavior is to get the tip of the 
 repository.  This means that your project may be composed of unstable code the
-instant 'go get' is done with it's installation pass.
+instant 'go get' is done with its installation pass.
 
 A bigger problem is that the process is not repatable, because there's no way
 to inform go of specifically which version, branch, tag, or commit to install.

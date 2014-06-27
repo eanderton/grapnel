@@ -57,6 +57,7 @@ func (self *Library) Install(installRoot string, ignorePattern string) error {
     log.Info("%s", err.Error())
     return log.Error("Could not create target directory: '%s'", importPath)
   }
+
   // move everything over
   if err := CopyFileTree(importPath, self.TempDir, ignorePattern); err != nil {
     log.Info("%s", err.Error())

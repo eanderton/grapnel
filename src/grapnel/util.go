@@ -78,15 +78,16 @@ func CopyFileTree(dest string, src string, ignore string) error {
       if ignoreFn(info.Name()) {
         return filepath.SkipDir
       }
-      dir := filepath.Base(destPath)
-      if err := os.MkdirAll(dir, 0755); err != nil {
-        return log.Error("Could not create directory: '%s'", dir)
-      }
+      //dir := filepath.Dir(destPath)
+      //log.Info("Making directory: %v : %v", dir, destPath)
+      //if err := os.MkdirAll(dir, 0755); err != nil {
+      //  return log.Error("Could not create directory: '%s'", dir)
+      //}
     } else { 
       if ignoreFn(info.Name()) {
         return nil  // skip file
       }
-      log.Info("Copying: %s", relativePath)
+      log.Debug("Copying: %s", destPath)
       if err := so.CopyFileContents(path, destPath); err != nil {
         return log.Error("Could not copy file '%s' to '%s'", path, destPath)
       }

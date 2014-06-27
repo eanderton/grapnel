@@ -118,7 +118,6 @@ func ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
         if err != nil {
           errors <- err
         } else {
-          log.Info("Resolved: '%s'", lib.Import)
           results <- lib
         }
       }(dep)

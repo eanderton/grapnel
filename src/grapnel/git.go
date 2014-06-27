@@ -77,15 +77,15 @@ func GitResolver(dep *Dependency) (*Library, error) {
  
   // Stop now if we have no semantic version information 
   if lib.VersionSpec.IsUnversioned() {
-    log.Warn("Dependency is resolved, but unversioned.")
     lib.Version = NewVersion(-1,-1,-1)
+    log.Warn("Resolved: %v (unversioned)", lib.Import)
     return lib, nil
   }
 
   // find latest version match
   if err := cmd.Run("git", "for-each-ref",
       "refs/tags", "--sort=taggerdate", "--format=%(refname:short)"); err != nil {
-    return nil, log.Error("Failed to acquire commit hash for dependency")
+    return nil, log.Error("Failed to acquire ref list for depenency")
   } else {
     for _,line := range strings.Split(cmd.CombinedOutput, "\n") {
       log.Info("%v", line)
@@ -111,6 +111,7 @@ func GitResolver(dep *Dependency) (*Library, error) {
     return nil, log.Error("Cannot find a tag for dependency version specification: %v.", lib.Dependency.VersionSpec)
   }
 
+  log.Info("Resolved: %s %v", lib.Import, lib.Version)
   return lib, nil
 }
 

@@ -51,6 +51,7 @@ func TestParseVersion(t *testing.T) {
     "1.1.1": NewVersion(1, 1, 1),
     " v1.5 ": NewVersion(1, 5, -1),
     " release100.0 ": NewVersion(100, 0, -1),
+    "release.r60 ": NewVersion(60, -1, -1),
     " 5 ": NewVersion(5, -1, -1),
   } {
     version, err := ParseVersion(k);

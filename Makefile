@@ -24,11 +24,13 @@ TESTTARGET := ./foobar
 PWD := $(shell pwd)
 all: unittest smoketest
 
+GOFILES := $(shell find src -type f -name *.go)
+
 clean:
 	-rm -f grapnel
 	-rm -rf $(TESTTARGET)
 
-grapnel:
+grapnel: $(GOFILES)
 	GOPATH='$(PWD)' go build -o grapnel grapnel/cmd 
 
 unittest:
@@ -40,4 +42,4 @@ smoketest: grapnel
 dogfood: grapnel
 	./grapnel install -c grapnel.toml -t ./dogfood -v
 
-.PHONY: all grapnel clean smoketest unittest
+.PHONY: all clean smoketest unittest

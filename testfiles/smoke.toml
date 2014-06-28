@@ -21,16 +21,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-[timber]
+[deps.timber]
 import = "github.com/ngmoco/timber"
 
-[memcache]
+[deps.memcache]
 import = "github.com/bradfitz/gomemcache"
 tag = "release.r60"
 
-[mux]
+[deps.mux]
 import = "github.com/gorilla/mux"
 
-[toml]
+[deps.toml]
 import = "github.com/pelletier/go-toml"
 tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"

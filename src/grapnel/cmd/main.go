@@ -1,8 +1,5 @@
 package main
 /*
-  Bundler-like support for Go.  That works.
-*/
-/*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,13 +25,15 @@ THE SOFTWARE.
 
 import (
   . "grapnel"
-  "github.com/spf13/cobra"
+  . "grapnel/flag"
   "path"
   "os"
   "fmt"
+  log "grapnel/log"
   toml "github.com/pelletier/go-toml"
-  log "github.com/ngmoco/timber"
 )
+
+var log = NewLogger()
 
 // application configurables
 var configFileName string
@@ -72,20 +71,19 @@ func loadDependencies(filename string) ([]*Dependency, error) {
   return deplist, nil
 }
 
-func installFn(cmd *cobra.Command, args []string) {
-  InitLogging()
+func installFn(cmd *Command, args []string) error {
   configurePipeline()
 
   // TODO: resolve path for targetPath
   log.Info("installing to: %v", targetPath) 
   if err := os.MkdirAll(targetPath, 0755); err != nil {
-    log.Fatal(err)
+    return err
   }
 
   // get the dependencies from the config file
   deplist, err := loadDependencies(configFileName)
   if err != nil {
-    log.Fatal(err)
+    return err
   }
   
   var libs map [string]*Library
@@ -99,7 +97,7 @@ func installFn(cmd *cobra.Command, args []string) {
   // resolve all the dependencies
   libs, err = ResolveDependencies(deplist)
   if err != nil {
-    log.Fatal(err)
+    return err
   }
 
   // install all the dependencies
@@ -112,68 +110,79 @@ func installFn(cmd *cobra.Command, args []string) {
   pkgFile, err := os.Create(path.Join(targetPath, "grapnel-lock.toml"))
   defer pkgFile.Close()
   if err != nil {
-    log.Fatal("Cannot open lock file: ", err)
+    log.Error("Cannot open lock file")
+    return err 
   }
   for _, lib := range libs {
     lib.ToToml(pkgFile)
   }
   
   log.Info("Install complete")
+  return nil
 }
 
-func updateFn(cmd *cobra.Command, args []string) {
+func updateFn(cmd *Command, args []string) error {
   InitLogging()
   // Do Stuff Here
   log.Info("Update complete")
+  return nil
 }
 
-func infoFn(cmd *cobra.Command, args[]string) {
+func infoFn(cmd *Command, args[]string) error {
   InitLogging()
   
   // get the dependencies from the config file
   deplist, err := loadDependencies(configFileName)
   if err != nil {
-    log.Error(err)
-    return
+    return err
   }
   for _, dep := range deplist {
     dep.ToToml(os.Stdout) 
   }
+  return nil
 }
 
-var installCmd = &cobra.Command{
-  Use: "install",
-  Short: "Ensure that dependencies are installed and ready for use.",
-  Run: installFn,
-}
+var (
+  flagQuiet bool
+  flagVerbose bool
+  flagDebug bool
+)
 
-var updateCmd = &cobra.Command{
-  Use: "update",
-  Short: "Update the current environment",
-  Run: updateFn,
-}
-
-var infoCmd = &cobra.Command{
-  Use: "info",
-  Short: "Query packer for package information",
-  Run: infoFn,
+var rootCmd = &Command{
+  Desc: "grapnel",
+  Flags: FlagMap {
+    "quiet":   BoolFlag(&flagQuiet),
+    "q":       BoolFlag(&flagQuiet),
+    "verbose": BoolFlag(&flagVerbose),
+    "v":       BoolFlag(&flagVerbose),
+    "debug":   BoolFlag(&flagDebug),
+    "config":  StringFlag(&configFileName),
+    "c":       StringFlag(&configFileName),
+    "target":  StringFlag(&targetPath),
+    "t":       StringFlag(&targetPath),
+  },
+  Commands: CommandMap {
+    "install": &Command{
+      Desc: "Ensure that dependencies are installed and ready for use.",
+      Fn: installFn,
+    },
+    "update": &Command{
+      Desc: "Update the current environment.",
+      Fn: updateFn,
+    },
+    "info": &Command{
+      Desc: "Query packer for package information",
+      Fn: infoFn,
+    },
+  },
 }
 
 func main() {
-  defer log.Close()
-  var rootCmd = &cobra.Command{Use: "grapnel"}
-  
-  rootCmd.PersistentFlags().BoolVarP(&LoggingVerbose, "verbose", "v", false, "verbose output")
-  rootCmd.PersistentFlags().BoolVarP(&LoggingQuiet, "quiet", "q", false, "quiet output")
-  rootCmd.PersistentFlags().BoolVar(&LoggingDebug, "debug", false, "debug output")
-
-  rootCmd.PersistentFlags().StringVarP(&configFileName, "config", "c", "./toml",
-    "configuration file")
-
-  rootCmd.PersistentFlags().StringVarP(&targetPath, "target", "t", "./src",
-    "where to manage packages")
-
-//  rootCmd.AddCommand(installCmd, updateCmd, infoCmd)
-  rootCmd.AddCommand(installCmd)
-  rootCmd.Execute()
+  SetFlags(0)
+  SetGlobalLogLevel(WARN)
+  log.Warn("Starting Grapnel")
+  if err := rootCmd.Execute(os.Args[1:]...); err != nil {
+    log.Error(err)
+    rootCmd.ShowHelp()
+  }
 }

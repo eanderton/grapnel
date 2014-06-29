@@ -7,21 +7,28 @@ other SCM types, and other major repo sites, is planned.
 
 ```
 $ ./grapnel 
+Manages dependencies for Go projects
 
-Usage: 
-  grapnel [command]
+Usage:
+   ./grapnel [flags] [command]
 
-Available Commands: 
-  install                   :: Ensure that dependencies are installed and ready for use.
-  help [command]            :: Help about any command
+Available Commands:
+  help    [command] Displays help for a command                              
+  info              Query for package information                            
+  install           Ensure that dependencies are installed and ready for use.
+  update            Update the current environment.                          
+  version           Version information                                      
 
- Available Flags:
-  -c, --config="./toml": configuration file
-  -q, --quiet: quiet output
-  -t, --target="./src": where to manage packages
-  -v, --verbose: verbose output
+Available Flags:
+  --debug                 Debug output                
+  --version               Displays version information
+  -c,--config  [filename] Configuration file          
+  -h,--help    [command]  Displays help for a command 
+  -q,--quiet              Quiet output                
+  -t,--target  [path]     Where to manage packages    
+  -v,--verbose            Verbose output              
 
-Use "grapnel help [command]" for more information about that command.
+Use 'grapnel help [command]' for more information about that command.
 ```
 
 About

@@ -34,22 +34,22 @@ clean:
 
 # Generates configuration out of data in this Makefile 
 emit-config:
-	cat src/grapnel/config.tmpl \
+	@cat src/grapnel/config.tmpl \
 	| sed -e 's/%PROGRAM_NAME%/$(PROGRAM_NAME)/' \
 	| sed -e 's/%VERSION%/$(VERSION)/' \
 	> src/grapnel/config.go
 
 # Normalize 'go test' output to align with 'go build'
 go-unittest:
-	GOPATH='$(PWD)' go test -v $(TESTPATH) \
+	@GOPATH='$(PWD)' go test -v $(TESTPATH) \
 	| sed -e 's#	\(.*\).go:#src/$(TESTPATH)/\1.go:#'
 
 # General unittests for each package
 unittest:
-	make go_unittest TESTPATH=grapnel/flag
-	make go_unittest TESTPATH=grapnel/log
-	make go_unittest TESTPATH=grapnel/toml
-	make go_unittest TESTPATH=grapnel
+	make go-unittest TESTPATH=grapnel/flag
+	make go-unittest TESTPATH=grapnel/log
+	make go-unittest TESTPATH=grapnel/toml
+	make go-unittest TESTPATH=grapnel
 
 # Basic command test
 smoketest: grapnel

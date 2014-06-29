@@ -20,17 +20,10 @@
 
 [package]
 version = "0.1"
-#provides = [ 'grapnel', 'grapnel/stackoverflow' ]
+provides = [ "grapnel" ]
+package_root = "src"
 
 [deps.toml]
-version = ">= 0.1.*"
+version = "== 0.1.0"
 import = "github.com/pelletier/go-toml"
 
-[deps.logging]
-import = "github.com/ngmoco/timber"
-
-[deps.spf13_cobra]
-import = "github.com/spf13/cobra"
-
-[deps.spf13_pflag]
-import = "github.com/spf13/pflag"

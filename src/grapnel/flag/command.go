@@ -66,7 +66,7 @@ func (self *Command) Execute(args... string) error {
 
   // default to help if no args
   cmdName := args[0]
-  if len(args) == 0 {
+  if len(args) == 1 {
     return self.ShowHelp(cmdName)
   }
   

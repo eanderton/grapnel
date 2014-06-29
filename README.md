@@ -6,7 +6,6 @@ only the basic 'install' mode is supported for github repositories.  Support for
 other SCM types, and other major repo sites, is planned.
 
 ```
-$ ./grapnel 
 Manages dependencies for Go projects
 
 Usage:
@@ -14,9 +13,7 @@ Usage:
 
 Available Commands:
   help    [command] Displays help for a command                              
-  info              Query for package information                            
   install           Ensure that dependencies are installed and ready for use.
-  update            Update the current environment.                          
   version           Version information                                      
 
 Available Flags:

@@ -23,11 +23,12 @@ THE SOFTWARE.
 
 import (
   "os"
-  so "grapnel/stackoverflow"
+  "fmt"
   "os/exec"
   "path/filepath"
   "regexp"
-  log "github.com/ngmoco/timber"
+  so "grapnel/stackoverflow"
+  log "grapnel/log"
 )
 
 type RunContext struct {
@@ -80,7 +81,7 @@ func CopyFileTree(dest string, src string, ignore string) error {
     }
   } else {
     if ignoreRegex, err := regexp.Compile(ignore); err != nil {
-      return log.Error("Failed to compile ignore regex")
+      return fmt.Errorf("Failed to compile ignore regex")
     } else {
       ignoreFn = func(name string) bool {
         return ignoreRegex.MatchString(name)
@@ -91,7 +92,7 @@ func CopyFileTree(dest string, src string, ignore string) error {
   return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
     if err != nil {
       log.Info("%s", err.Error())
-      return log.Error("Error while walking file tree")
+      return fmt.Errorf("Error while walking file tree")
     }
     relativePath, _ := filepath.Rel(src, path)
     destPath := filepath.Join(dest, relativePath)
@@ -99,18 +100,13 @@ func CopyFileTree(dest string, src string, ignore string) error {
       if ignoreFn(info.Name()) {
         return filepath.SkipDir
       }
-      //dir := filepath.Dir(destPath)
-      //log.Info("Making directory: %v : %v", dir, destPath)
-      //if err := os.MkdirAll(dir, 0755); err != nil {
-      //  return log.Error("Could not create directory: '%s'", dir)
-      //}
     } else { 
       if ignoreFn(info.Name()) {
         return nil  // skip file
       }
       log.Debug("Copying: %s", destPath)
       if err := so.CopyFileContents(path, destPath); err != nil {
-        return log.Error("Could not copy file '%s' to '%s'", path, destPath)
+        return fmt.Errorf("Could not copy file '%s' to '%s'", path, destPath)
       }
     }
     return nil 

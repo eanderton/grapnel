@@ -24,7 +24,6 @@ THE SOFTWARE.
 import (
   "regexp"
   "strconv"
-  log "github.com/ngmoco/timber"
   "math"
   "fmt"
 )
@@ -156,7 +155,7 @@ func ParseVersionSpec(src string) (*VersionSpec, error) {
   var oper, major, minor, subminor int
   matches := parseVersionSpec.FindStringSubmatch(src)
   if len(matches) == 0 {
-    return nil, log.Error("Cannot parse version spec: '%s'", src)
+    return nil, fmt.Errorf("Cannot parse version spec: '%s'", src)
   }
   switch matches[1] {
   case "<":

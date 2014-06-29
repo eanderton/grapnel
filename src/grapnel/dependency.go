@@ -26,7 +26,6 @@ import (
   "fmt"
   "net/url"
   "io"
-  log "github.com/ngmoco/timber"
 )
 
 type Dependency struct {
@@ -77,7 +76,7 @@ func (self *Dependency) Reconcile(other *Dependency) (*Dependency, error) {
   } else if other.VersionSpec.Outranks(self.VersionSpec) {
     return other, nil
   }
-  return nil, log.Error("Cannot reconcile dependencies for '%v'", self.Import)
+  return nil, fmt.Errorf("Cannot reconcile dependencies for '%v'", self.Import)
 }
 
 func NewDependencyFromToml(name string, tree *toml.TomlTree) (*Dependency, error) {

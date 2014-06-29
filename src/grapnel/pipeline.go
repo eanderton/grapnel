@@ -24,7 +24,7 @@ THE SOFTWARE.
 import (
   "fmt"
   "strings"
-  log "github.com/ngmoco/timber"
+  log "grapnel/log"
 )
 
 // TODO: some kind of resolver middleware capability to support
@@ -73,7 +73,7 @@ func (self *Dependency) Resolve() (*Library, error) {
     }
   }
   
-  return nil, log.Error("Cannot identify resolver for dependency: '%v'", self.Import)
+  return nil, fmt.Errorf("Cannot identify resolver for dependency: '%v'", self.Import)
 }
 
 func DeduplicateDeps(deps []*Dependency) ([]*Dependency, error) {
@@ -105,7 +105,7 @@ func LibResolveDeps(libs map[string]*Library, deps []*Dependency) ([]*Dependency
   for _, dep := range deps {
     if lib, ok := libs[dep.Import]; ok {
       if !dep.IsSatisfiedBy(lib.Version) {
-        return nil, log.Error("Cannot reconcile '%v'", dep.Import) 
+        return nil, fmt.Errorf("Cannot reconcile '%v'", dep.Import) 
       }
     } else {
       tempQueue = append(tempQueue, dep)
@@ -154,7 +154,7 @@ func ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
         log.Debug("Reconciled library: %s", lib.Import)
         tempQueue = append(tempQueue, lib.Dependencies...)
       case err := <- errors:
-        log.Error("%v",err)
+        log.Error(err)
         failed = true
       }
     }

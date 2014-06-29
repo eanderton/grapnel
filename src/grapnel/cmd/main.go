@@ -205,7 +205,7 @@ var rootCmd = &Command{
       Desc: "Ensure that dependencies are installed and ready for use.",
       Fn: installFn,
     },
-    "update": &Command{
+/*    "update": &Command{
       Desc: "Update the current environment.",
       Fn: updateFn,
     },
@@ -213,7 +213,7 @@ var rootCmd = &Command{
       Desc: "Query for package information",
       Fn: infoFn,
     },
-    "version": &Command{
+*/    "version": &Command{
       Desc: "Version information",
       Fn: SimpleCommandFn(ShowVersion),
     },

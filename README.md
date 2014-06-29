@@ -31,6 +31,22 @@ Available Flags:
 Use 'grapnel help [command]' for more information about that command.
 ```
 
+Compilation
+===========
+
+Everything you need to build Grapnel is included in this project repo.  Simply
+Run the provided makefile:
+
+```
+make grapnel
+```
+
+... or set GOPATH to the currenct directory and use 'go' directly:
+
+```
+go build -o grapnel grapnel/cmd
+```
+
 About
 =====
 

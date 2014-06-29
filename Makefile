@@ -1,5 +1,3 @@
-# Dead-simple makefile for Grapnel
-#
 # Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,27 +18,46 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+VERSION = 0.2
+PROGRAM_NAME = grapnel
+
 TESTTARGET := ./foobar
 PWD := $(shell pwd)
 all: unittest smoketest
 
+# Quick-and-dirty dependency trigger - recompile only if a .go file changes
 GOFILES := $(shell find src -type f -name *.go)
 
 clean:
 	-rm -f grapnel
 	-rm -rf $(TESTTARGET)
 
-grapnel: $(GOFILES)
-	GOPATH='$(PWD)' go build -o grapnel grapnel/cmd 
+# Generates configuration out of data in this Makefile 
+emit-config:
+	cat src/grapnel/config.tmpl \
+	| sed -e 's/%PROGRAM_NAME%/$(PROGRAM_NAME)/' \
+	| sed -e 's/%VERSION%/$(VERSION)/' \
+	> src/grapnel/config.go
 
+# Normalize 'go test' output to align with 'go build'
+go-unittest:
+	GOPATH='$(PWD)' go test -v $(TESTPATH) \
+	| sed -e 's#	\(.*\).go:#src/$(TESTPATH)/\1.go:#'
+
+# General unittests for each package
 unittest:
-	GOPATH='$(PWD)' go test -v grapnel/log
-	GOPATH='$(PWD)' go test -v grapnel/flag
-	GOPATH='$(PWD)' go test -v grapnel/util
-	GOPATH='$(PWD)' go test -v grapnel/toml
-	GOPATH='$(PWD)' go test -v grapnel
+	make go_unittest TESTPATH=grapnel/flag
+	make go_unittest TESTPATH=grapnel/log
+	make go_unittest TESTPATH=grapnel/toml
+	make go_unittest TESTPATH=grapnel
 
+# Basic command test
 smoketest: grapnel
 	./grapnel install -c testfiles/smoke.toml -t $(TESTTARGET) -v
 
-.PHONY: all clean smoketest unittest
+# Target command to build
+grapnel: $(GOFILES)
+	make emit-config
+	GOPATH='$(PWD)' go build -o grapnel grapnel/cmd 
+
+.PHONY: all clean emit-config go-unittest smoketest unittest

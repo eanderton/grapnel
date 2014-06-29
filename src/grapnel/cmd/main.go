@@ -145,7 +145,7 @@ func updateFn(cmd *Command, args []string) error {
   return nil
 }
 
-func infoFn(cmd *Command, args[]string) error {
+func infoFn(cmd *Command, args []string) error {
   configureLogging()
   
   // get the dependencies from the config file
@@ -159,32 +159,45 @@ func infoFn(cmd *Command, args[]string) error {
   return nil
 }
 
+func ShowVersion() error {
+  fmt.Printf("%s v%s\n", PROGRAM_NAME, VERSION)
+  return nil
+}
+
 var rootCmd = &Command{
-  Alias: "grapnel",
+  Alias: PROGRAM_NAME,
+  Desc: "Manages dependencies for Go projects",
+  Help: "Use 'grapnel help [command]' for more information about that command.",
   Flags: FlagMap {
     "quiet": &Flag {
       Alias: "q",
-      Desc: "quiet output",
+      Desc: "Quiet output",
       Fn: BoolFlagFn(&flagQuiet),
     },
     "verbose": &Flag {
       Alias: "v",
-      Desc: "verbose output",
+      Desc: "Verbose output",
       Fn: BoolFlagFn(&flagVerbose),
     },
     "debug": &Flag {
-      Desc: "debug output",
+      Desc: "Debug output",
       Fn: BoolFlagFn(&flagDebug),
     },
     "config": &Flag {
       Alias: "c",
-      Desc: "configuration file",
+      Desc: "Configuration file",
+      ArgDesc: "[filename]",
       Fn: StringFlagFn(&configFileName),
     },
     "target": &Flag {
       Alias: "t",
-      Desc: "where to manage packages",
+      Desc: "Where to manage packages",
+      ArgDesc: "[path]",
       Fn: StringFlagFn(&targetPath),
+    },
+    "version": &Flag {
+      Desc: "Displays version information",
+      Fn: SimpleFlagFn(ShowVersion),
     },
   },
   Commands: CommandMap {
@@ -197,16 +210,21 @@ var rootCmd = &Command{
       Fn: updateFn,
     },
     "info": &Command{
-      Desc: "Query packer for package information",
+      Desc: "Query for package information",
       Fn: infoFn,
+    },
+    "version": &Command{
+      Desc: "Version information",
+      Fn: SimpleCommandFn(ShowVersion),
     },
   },
 }
 
 func main() {
   log.SetFlags(0)
-  if err := rootCmd.Execute(os.Args[1:]...); err != nil {
+  // TODO: compile defaults and set rootCmd.Help
+  if err := rootCmd.Execute(os.Args...); err != nil {
     log.Error(err)
-    rootCmd.ShowHelp()
+    rootCmd.ShowHelp("")
   }
 }

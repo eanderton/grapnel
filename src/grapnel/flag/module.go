@@ -31,6 +31,7 @@ type FlagFn func(name string, values[] string) (int, error)
 type Flag struct {
   Alias string
   Desc string
+  ArgDesc string
   Fn FlagFn
 }
 
@@ -41,6 +42,7 @@ type CommandMap map[string]*Command
 type Command struct {
   Alias string
   Desc string
+  ArgDesc string
   Help string
   Fn CommandFn
   Commands CommandMap
@@ -63,15 +65,15 @@ func dispatchFlag(cmdName string, flags FlagMap, name string, values []string) (
 func (self *Command) Execute(args... string) error {
 
   // default to help if no args
+  cmdName := args[0]
   if len(args) == 0 {
-    return self.ShowHelp()
+    return self.ShowHelp(cmdName)
   }
   
   // figure out commands and remaining args to use based on command map
-  var cmdName string
   flags := make(FlagMap)
   cmd := self
-  ii := 0
+  ii := 1
   for ii = ii; ii < len(args); ii++ {
     // add the flags and break if no more subcommands to process
     for k,v := range cmd.Flags {
@@ -86,7 +88,7 @@ func (self *Command) Execute(args... string) error {
     nextCmdName := args[ii]
     if nextCmdName == "help" {
       // special case for 'help'
-      return cmd.showHelp(args[ii+1:])
+      return cmd.showHelp(cmdName, args[ii+1:])
     }
     nextCmd, ok := cmd.Commands[nextCmdName]
     if !ok {
@@ -102,12 +104,11 @@ func (self *Command) Execute(args... string) error {
   // NOTE: continue where we left off in previous loop
   posArgs := []string{}
   for ii = ii; ii < len(args); ii++ {
-    //fmt.Printf("%v [%v]\n", ii, args[ii])
     name := args[ii]
 
     // special case for help
     if name == "--help" || name == "-h" {
-      return cmd.showHelp(args[ii+1:])
+      return cmd.showHelp(cmdName, args[ii+1:])
     }
 
     // flag parsing
@@ -149,8 +150,8 @@ func (self *Command) Execute(args... string) error {
         name = name[1:] // strip leading '-'
         // handle multiple single-char flags smushed together
         // NOTE: stop short of last char
-        var jj int = 0
-        for jj = jj; jj < len(name)-1; jj++ {
+        jj := 0
+        for ; jj < len(name)-1; jj++ {
           internalFlag := string(name[jj])
           if _, err := dispatchFlag(cmdName, flags, internalFlag, []string{""}); err != nil {
             return err
@@ -185,30 +186,72 @@ func (self *Command) Execute(args... string) error {
 
 // internal help command that takes an array to ease calling
 // NOTE; only the first element of args is considered
-func (self *Command) showHelp(args []string) error {
+func (self *Command) showHelp(cmdName string, args []string) error {
   if len(args) == 0 {
-    return self.ShowHelp()
+    return self.ShowHelp(cmdName)
   } 
-  cmdName := args[0]
-  if searchCmd, ok := self.Commands[cmdName]; ok  {
-    return searchCmd.ShowHelp()  
+  subCmd := args[0]
+  if searchCmd, ok := self.Commands[subCmd]; ok  {
+    return searchCmd.ShowHelp(subCmd)  
   }
   return fmt.Errorf("'%v' is not a valid command", cmdName)
 }
 
 
-func optStr(name string) string {
+func optStr(name, alias string) string {
+  result := ""
+  if len(alias) == 1 {
+    result += "-" + alias + ","
+  } else if len(alias) > 1 { 
+    result += "--" + alias + "," 
+  }
   if len(name) == 1 {
-    return "-" + name
+    result += "-" + name
   } else {
-    return "--" + name
+    result += "--" + name
+  }
+  return result
+}
+
+func tablePrint(pre string, sep string, elements [][]string) {
+  // calculate widths
+  widths := map[int]int{}
+  for _, row := range elements {
+    for jj, item := range row {
+      if ll, ok := widths[jj]; !ok || len(item) > ll {
+        widths[jj] = len(item)
+      }
+    }
+  }
+  // generate output
+  for _, row := range elements {
+    fmt.Printf("%s", pre)
+    for jj, item := range row {
+      if widths[jj] == 0 { continue }
+      if jj > 0 {
+        fmt.Printf("%s", sep)
+      }
+      fmt.Printf("%-*s", widths[jj], item)
+    }
+    fmt.Printf("\n")
   }
 }
 
 // Shows help for the command
-func (self *Command) ShowHelp() error {
+func (self *Command) ShowHelp(cmdName string) error {
+  // command name
+  name := cmdName
+  if name == "" {
+    name = self.Alias 
+  }
+  
+  // description
+  if self.Desc != "" {
+    fmt.Printf("%v\n\n", self.Desc)
+  }
+
   // Usage section
-  fmt.Printf("Usage:\n   %v", self.Alias)
+  fmt.Printf("Usage:\n   %s", name)
   if len(self.Flags) > 0 {
     fmt.Printf(" [flags]")
   }
@@ -219,22 +262,32 @@ func (self *Command) ShowHelp() error {
 
   // Subcommand section
   if len(self.Commands) > 0 {
-    fmt.Printf("\nAvailable Commands:\n")
-    for k,v := range self.Commands {
-      fmt.Printf("  %v %v\n", k, v.Desc)
+    commands := [][]string{}
+    commands = append(commands, []string{ 
+      "help", "[command]", "Displays help for a command",
+    })
+    for name, cmd := range self.Commands {
+      commands = append(commands, []string{
+        name, cmd.ArgDesc, cmd.Desc,
+      })
     }
+    fmt.Printf("\nAvailable Commands:\n")
+    tablePrint("  ", " ", commands)
   }
 
   // Flag section
   if len(self.Flags) > 0 {
-    fmt.Printf("\nAvailable Flags:\n")
-    for k,v := range self.Flags {
-      fmt.Printf("  ")
-      if v.Alias != "" {
-        fmt.Printf("%v,", optStr(v.Alias))
-      }
-      fmt.Printf("%v %v\n", optStr(k), v.Desc)
+    flags := [][]string{}
+    flags = append(flags, []string{ 
+      "-h,--help", "[command]", "Displays help for a command",
+    })
+    for name, flag := range self.Flags {
+      flags = append(flags, []string{
+        optStr(name, flag.Alias), flag.ArgDesc, flag.Desc,
+      })
     }
+    fmt.Printf("\nAvailable Flags:\n")
+    tablePrint("  ", " ", flags)
   }
 
   // Misc help
@@ -243,26 +296,10 @@ func (self *Command) ShowHelp() error {
   }
   return nil
 }
-/*
-Usage: 
-  grapnel [command]
-
-Available Commands: 
-  install                   :: Ensure that dependencies are installed and ready for use.
-  help [command]            :: Help about any command
-
- Available Flags:
-  -c, --config="./toml": configuration file
-  -q, --quiet: quiet output
-  -t, --target="./src": where to manage packages
-  -v, --verbose: verbose output
-
-Use "grapnel help [command]" for more information about that command.
-*/
 
 func BoolFlagFn(ptr *bool) FlagFn {
   return func (name string, values []string) (int, error) {
-    *ptr = true
+    (*ptr) = true
     return 0, nil
   }
 }
@@ -272,9 +309,23 @@ func StringFlagFn(ptr *string) FlagFn {
     if len(values) == 0 {
       return 0, fmt.Errorf("Flag %v requires a value", name)
     }
-    *ptr = values[0]
+    (*ptr) = values[0]
     return 1, nil
   }
+}
+
+// Basic proxy for a simple func to run when a flag is used
+func SimpleFlagFn(fn func() error) FlagFn {
+  return func (name string, values []string) (int, error) {
+    return 0, fn()
+  }
+}
+
+// Basic proxy for a simple func to run when a command is used
+func SimpleCommandFn(fn func() error) CommandFn {
+  return func (cmd *Command, args []string) error {
+    return fn()
+  }  
 }
 
 //NOTE: add additional types here

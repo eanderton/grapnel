@@ -83,47 +83,47 @@ func TestExecute(t *testing.T) {
     CmdArgs []string
   }{
     {
-      []string{ "-q" },
+      []string{ "cmd", "-q" },
       true, "", false,
       []string{},
     },
     {
-      []string{ "-q", "--quiet" },
+      []string{ "cmd", "-q", "--quiet" },
       true, "", false,
       []string{},
     },
     {
-      []string{ "--target=foobar"},
+      []string{ "cmd", "--target=foobar"},
       false, "foobar", false,
       []string{},
     },
     {
-      []string{ "--target=", "foobar"},
+      []string{ "cmd", "--target=", "foobar"},
       false, "foobar", false,
       []string{},
     },
     {
-      []string{ "--target", "=", "foobar"},
+      []string{ "cmd", "--target", "=", "foobar"},
       false, "foobar", false,
       []string{},
     },
     {
-      []string{ "--target", "=foobar"},
+      []string{ "cmd", "--target", "=foobar"},
       false, "foobar", false,
       []string{},
     },
     {
-      []string{ "-qt", "foobar"},
+      []string{ "cmd", "-qt", "foobar"},
       true, "foobar", false,
       []string{},
     },
     {
-      []string{ "test", "foo", "bar", "baz"},
+      []string{ "cmd", "test", "foo", "bar", "baz"},
       false, "", true,
       []string{ "foo", "bar", "baz" },
     },
     {
-      []string{ "test", "-qt", "foo", "bar", "baz"},
+      []string{ "cmd", "test", "-qt", "foo", "bar", "baz"},
       true, "foo", true,
       []string{ "bar", "baz" },
     },

@@ -26,15 +26,20 @@ import (
   "strings"
 )
 
-type Flag interface {
-  Dispatch(name string, values []string) (int, error)
+type FlagFn func(name string, values[] string) (int, error)
+
+type Flag struct {
+  Alias string
+  Desc string
+  Fn FlagFn
 }
 
 type CommandFn func(cmd *Command, args []string) error
-type FlagMap map[string]Flag
+type FlagMap map[string]*Flag
 type CommandMap map[string]*Command
 
 type Command struct {
+  Alias string
   Desc string
   Help string
   Fn CommandFn
@@ -45,7 +50,7 @@ type Command struct {
 // internal dispatch for flags - eases composition of the Execute loop
 func dispatchFlag(cmdName string, flags FlagMap, name string, values []string) (int, error) {
   if flag, ok := flags[name]; ok {
-    if consumed, err := flag.Dispatch(name, values); err != nil {
+    if consumed, err := flag.Fn(name, values); err != nil {
       return consumed, err
     } else {
       return consumed, nil
@@ -71,6 +76,9 @@ func (self *Command) Execute(args... string) error {
     // add the flags and break if no more subcommands to process
     for k,v := range cmd.Flags {
       flags[k] = v
+      if v.Alias != "" {
+        flags[v.Alias] = v
+      }
     }
     if len(cmd.Commands) == 0 { break }
   
@@ -165,7 +173,6 @@ func (self *Command) Execute(args... string) error {
       posArgs = append(posArgs, name)
     }
   }
-  fmt.Printf("posargs: %v\n", posArgs)
   // execute the function
   if cmd.Fn != nil {
     return cmd.Fn(cmd, posArgs) 
@@ -190,42 +197,84 @@ func (self *Command) showHelp(args []string) error {
 }
 
 
+func optStr(name string) string {
+  if len(name) == 1 {
+    return "-" + name
+  } else {
+    return "--" + name
+  }
+}
+
 // Shows help for the command
 func (self *Command) ShowHelp() error {
-  return fmt.Errorf("TODO: help for command %v", self)
-}
-
-
-// Boolean flag - allows no arguments and fires fn() if present
-type boolFlag struct {
-  ptr *bool
-}
-
-func BoolFlag(ptr *bool) *boolFlag {
-  return &boolFlag { ptr: ptr }
-}
-
-func (self *boolFlag) Dispatch(name string, values []string) (int, error) {
-  *(self.ptr) = true
-  return 0, nil
-}
-
-
-// String flag - string value is passed to fn()
-type stringFlag struct {
-  ptr *string
-}
-
-func StringFlag(ptr *string) *stringFlag {
-  return &stringFlag { ptr: ptr }
-}
-
-func (self *stringFlag) Dispatch(name string, values []string) (int, error) {
-  if len(values) == 0 {
-    return 0, fmt.Errorf("Flag %v requires a value", name)
+  // Usage section
+  fmt.Printf("Usage:\n   %v", self.Alias)
+  if len(self.Flags) > 0 {
+    fmt.Printf(" [flags]")
   }
-  *(self.ptr) = values[0]
-  return 1, nil
+  if len(self.Commands) > 0 {
+    fmt.Printf(" [command]")
+  }
+  fmt.Printf("\n")
+
+  // Subcommand section
+  if len(self.Commands) > 0 {
+    fmt.Printf("\nAvailable Commands:\n")
+    for k,v := range self.Commands {
+      fmt.Printf("  %v %v\n", k, v.Desc)
+    }
+  }
+
+  // Flag section
+  if len(self.Flags) > 0 {
+    fmt.Printf("\nAvailable Flags:\n")
+    for k,v := range self.Flags {
+      fmt.Printf("  ")
+      if v.Alias != "" {
+        fmt.Printf("%v,", optStr(v.Alias))
+      }
+      fmt.Printf("%v %v\n", optStr(k), v.Desc)
+    }
+  }
+
+  // Misc help
+  if self.Help != "" {
+    fmt.Printf("\n%v\n", self.Help)
+  }
+  return nil
+}
+/*
+Usage: 
+  grapnel [command]
+
+Available Commands: 
+  install                   :: Ensure that dependencies are installed and ready for use.
+  help [command]            :: Help about any command
+
+ Available Flags:
+  -c, --config="./toml": configuration file
+  -q, --quiet: quiet output
+  -t, --target="./src": where to manage packages
+  -v, --verbose: verbose output
+
+Use "grapnel help [command]" for more information about that command.
+*/
+
+func BoolFlagFn(ptr *bool) FlagFn {
+  return func (name string, values []string) (int, error) {
+    *ptr = true
+    return 0, nil
+  }
+}
+
+func StringFlagFn(ptr *string) FlagFn {
+  return func (name string, values []string) (int, error) {
+    if len(values) == 0 {
+      return 0, fmt.Errorf("Flag %v requires a value", name)
+    }
+    *ptr = values[0]
+    return 1, nil
+  }
 }
 
 //NOTE: add additional types here

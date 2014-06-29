@@ -160,17 +160,32 @@ func infoFn(cmd *Command, args[]string) error {
 }
 
 var rootCmd = &Command{
-  Desc: "grapnel",
+  Alias: "grapnel",
   Flags: FlagMap {
-    "quiet":   BoolFlag(&flagQuiet),
-    "q":       BoolFlag(&flagQuiet),
-    "verbose": BoolFlag(&flagVerbose),
-    "v":       BoolFlag(&flagVerbose),
-    "debug":   BoolFlag(&flagDebug),
-    "config":  StringFlag(&configFileName),
-    "c":       StringFlag(&configFileName),
-    "target":  StringFlag(&targetPath),
-    "t":       StringFlag(&targetPath),
+    "quiet": &Flag {
+      Alias: "q",
+      Desc: "quiet output",
+      Fn: BoolFlagFn(&flagQuiet),
+    },
+    "verbose": &Flag {
+      Alias: "v",
+      Desc: "verbose output",
+      Fn: BoolFlagFn(&flagVerbose),
+    },
+    "debug": &Flag {
+      Desc: "debug output",
+      Fn: BoolFlagFn(&flagDebug),
+    },
+    "config": &Flag {
+      Alias: "c",
+      Desc: "configuration file",
+      Fn: StringFlagFn(&configFileName),
+    },
+    "target": &Flag {
+      Alias: "t",
+      Desc: "where to manage packages",
+      Fn: StringFlagFn(&targetPath),
+    },
   },
   Commands: CommandMap {
     "install": &Command{

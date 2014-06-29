@@ -42,10 +42,16 @@ func resetCmdTest() {
 var rootCmd = &Command{
   Desc: "grapnel",
   Flags: FlagMap {
-    "quiet":   BoolFlag(&flagQuiet),
-    "q":       BoolFlag(&flagQuiet),
-    "target":  StringFlag(&targetPath),
-    "t":       StringFlag(&targetPath),
+    "quiet":   &Flag{
+      Alias: "q",
+      Desc: "quiet output",
+      Fn: BoolFlagFn(&flagQuiet),
+    },
+    "target":  &Flag{
+      Alias: "t",
+      Desc: "target",
+      Fn: StringFlagFn(&targetPath),
+    },
   },
   Commands: CommandMap {
     "test": &Command{

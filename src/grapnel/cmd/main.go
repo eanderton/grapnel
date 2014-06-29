@@ -21,8 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// archive support like *everything else* (tar.gz, zip, and bz2)
-
 import (
   . "grapnel"
   . "grapnel/flag"
@@ -33,11 +31,26 @@ import (
   toml "github.com/pelletier/go-toml"
 )
 
-var log = NewLogger()
-
 // application configurables
-var configFileName string
-var targetPath string
+var (
+  configFileName string
+  targetPath string
+  flagQuiet bool
+  flagVerbose bool
+  flagDebug bool
+)
+
+
+func configureLogging() {
+  if flagDebug {
+    log.SetGlobalLogLevel(log.DEBUG)
+  } else if flagQuiet {
+    log.SetGlobalLogLevel(log.ERROR)
+  } else if flagVerbose {
+    log.SetGlobalLogLevel(log.INFO)
+  }
+}
+
 
 func configurePipeline() {
   // configure Git
@@ -45,7 +58,10 @@ func configurePipeline() {
   UrlSchemeResolvers["git"] = GitResolver
   UrlHostResolvers["github.com"] = GitResolver 
   InstallIgnorePatterns["git"] = GitIgnorePattern
+
+  // TODO: other SCMs
 }
+
 
 func loadDependencies(filename string) ([]*Dependency, error) {
   tree, err := toml.LoadFile(filename)
@@ -72,6 +88,7 @@ func loadDependencies(filename string) ([]*Dependency, error) {
 }
 
 func installFn(cmd *Command, args []string) error {
+  configureLogging()
   configurePipeline()
 
   // TODO: resolve path for targetPath
@@ -122,14 +139,14 @@ func installFn(cmd *Command, args []string) error {
 }
 
 func updateFn(cmd *Command, args []string) error {
-  InitLogging()
+  configureLogging()
   // Do Stuff Here
   log.Info("Update complete")
   return nil
 }
 
 func infoFn(cmd *Command, args[]string) error {
-  InitLogging()
+  configureLogging()
   
   // get the dependencies from the config file
   deplist, err := loadDependencies(configFileName)
@@ -141,12 +158,6 @@ func infoFn(cmd *Command, args[]string) error {
   }
   return nil
 }
-
-var (
-  flagQuiet bool
-  flagVerbose bool
-  flagDebug bool
-)
 
 var rootCmd = &Command{
   Desc: "grapnel",
@@ -178,9 +189,7 @@ var rootCmd = &Command{
 }
 
 func main() {
-  SetFlags(0)
-  SetGlobalLogLevel(WARN)
-  log.Warn("Starting Grapnel")
+  log.SetFlags(0)
   if err := rootCmd.Execute(os.Args[1:]...); err != nil {
     log.Error(err)
     rootCmd.ShowHelp()

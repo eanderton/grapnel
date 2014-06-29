@@ -22,129 +22,23 @@ THE SOFTWARE.
 */
 
 import (
+  . "grapnel/testing"
   "os"
   "testing"
-  "os/exec"
-  _ "path/filepath"
-  "bytes"
-  "bufio"
-  "strings"
-  "time"
-  "path"
-  "io/ioutil"
-  log "github.com/ngmoco/timber"
+  log "grapnel/log"
 )
 
-func getTestDependencyData() []*Dependency {
-  return nil
-}
-
-var gitDaemon *exec.Cmd
-
-func startGitDaemon(basePath string) (chan struct{}, error) {
-  ready := make(chan struct{})
-  if gitDaemon != nil {
-    go func(){
-      ready <- struct{}{}
-    }()
-    return ready, nil
-  }
-  cwd, err := os.Getwd()
-  if err != nil {
-    return nil, err
-  }
-  log.Info("Using CWD: %v", basePath)
-  cmd := exec.Command("git", "daemon",
-    "--reuseaddr",
-    "--base-path=" + basePath,
-    "--port=9999",
-    "--export-all",
-    "--informative-errors",
-    "--verbose")
-  var outbuf bytes.Buffer
-  cmd.Stdout = bufio.NewWriter(&outbuf)
-  cmd.Stderr = cmd.Stdout
-  cmd.Dir = cwd
-    
-  // start the daemon
-  if err = cmd.Start(); err != nil {
-    return nil, err
-  }
-  gitDaemon = cmd
-
-  // signal that the daemon is ready to use
-  go func() {
-    for {
-      data := outbuf.String()
-      if strings.Contains(data, "Ready to rumble") {
-        <- time.After(1*time.Second)  // wait a second
-        os.Stdout.WriteString(data)
-        cmd.Stdout = os.Stdout
-        cmd.Stderr = os.Stderr
-        ready <- struct{}{}
-        return
-      }
-    }
-  }()
-
-  // wait for it to halt asynchronously
-  go func() {
-    log.Info("git daemon stopped: %v", gitDaemon.Wait())
-    gitDaemon = nil
-  }()
-
-  return ready, nil
-}
-
-func stopGitDaemon() {
-  if gitDaemon == nil {
-    return
-  }
-  gitDaemon.Process.Signal(os.Interrupt)
-}
-
-func BuildTestGitRepo(repoName string) string {
-  var err error
-  var basePath string
-  if basePath, err = ioutil.TempDir("",""); err != nil {
-    panic(err)
-  }
-  repoPath := path.Join(basePath, repoName)
-  if err = os.Mkdir(repoPath,0755); err != nil{
-    panic(err)
-  }
-
-  cmd := NewRunContext(repoPath)
-  for _, data := range [][]string {
-    {"git", "init"},
-    {"touch", "README"},
-    {"git", "add", "README"},
-    {"git", "commit", "-a", "-m", "first commit"},
-    {"git", "tag", "v1.0"}, 
-    {"touch", "foo.txt"},
-    {"git", "add", "foo.txt"},
-    {"git", "commit", "-a", "-m", "second commit"},
-    {"git", "tag", "v1.1"}, 
-  } {
-    cmd.MustRun(data[0], data[1:]...)
-  }
-  return basePath
-}
-
-
 func TestGitResolver(t *testing.T) {
-  initTestLogging()
+  InitTestLogging()
   
   // construct a repo
   basePath := BuildTestGitRepo("gitrepo")  
   defer os.Remove(basePath)
 
   // start a daemon to serve the repo
-  defer stopGitDaemon()
-  if ready, err := startGitDaemon(basePath); err != nil {
+  defer StopGitDaemon()
+  if err := StartGitDaemon(basePath); err != nil {
     t.Error("%v", err)
-  } else {
-    <- ready  // wait until we're ready
   }
 
   // map a dependency to the repo

@@ -24,12 +24,8 @@ THE SOFTWARE.
 import (
   "testing"
   "net/url"
-  log "github.com/ngmoco/timber"
+  log "grapnel/log"
 )
-
-func _dummy() {
-  log.Info("hello world")
-}
 
 func getTestPipelineDependencyData() []*Dependency {
   fooUrl,_ := url.Parse("foo://somewhere.com/baz/gorf")
@@ -55,7 +51,7 @@ func getTestPipelineDependencyData() []*Dependency {
 }
 
 func TestResolvers(t *testing.T) {
-  initTestLogging()
+  log.SetGlobalLogLevel(log.DEBUG)
 
   // set up resolvers and resolver tear-down
   simpleResolver := func(*Dependency) (*Library,error) {
@@ -81,7 +77,7 @@ func TestResolvers(t *testing.T) {
 }
 
 func TestDeduplicateDeps(t *testing.T) {
-  initTestLogging()
+  log.SetGlobalLogLevel(log.DEBUG)
 
   testDeps := getTestPipelineDependencyData()
   testDeps = append(testDeps, testDeps...)
@@ -95,7 +91,7 @@ func TestDeduplicateDeps(t *testing.T) {
 }
 
 func TestLibResolveDeps(t *testing.T) {
-  initTestLogging()
+  log.SetGlobalLogLevel(log.DEBUG)
 
   resolved := make(map[string]*Library)
   testDeps := getTestPipelineDependencyData()
@@ -120,7 +116,7 @@ func TestLibResolveDeps(t *testing.T) {
 
 
 func TestResolveDependencies(t *testing.T) {
-  initTestLogging()
+  log.SetGlobalLogLevel(log.DEBUG)
 
   // set up resolvers and resolver tear-down
   simpleResolver := func(dep *Dependency) (*Library,error) {

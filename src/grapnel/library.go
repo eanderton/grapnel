@@ -27,7 +27,8 @@ import (
   "os"
   "io"
   "fmt"
-  log "github.com/ngmoco/timber"
+  util "grapnel/util"
+  log "grapnel/log"
 )
 
 type Library struct {
@@ -76,13 +77,13 @@ func (self *Library) Install(installRoot string, ignorePattern string) error {
   importPath := filepath.Join(installRoot, self.Import)
   if err := os.MkdirAll(importPath, 0755); err != nil {
     log.Info("%s", err.Error())
-    return log.Error("Could not create target directory: '%s'", importPath)
+    return fmt.Errorf("Could not create target directory: '%s'", importPath)
   }
 
   // move everything over
-  if err := CopyFileTree(importPath, self.TempDir, ignorePattern); err != nil {
+  if err := util.CopyFileTree(importPath, self.TempDir, ignorePattern); err != nil {
     log.Info("%s", err.Error())
-    return log.Error("Error while walking dependency file tree")
+    return fmt.Errorf("Error while walking dependency file tree")
   }
   return nil
 }

@@ -34,12 +34,13 @@ grapnel: $(GOFILES)
 	GOPATH='$(PWD)' go build -o grapnel grapnel/cmd 
 
 unittest:
+	GOPATH='$(PWD)' go test -v grapnel/log
+	GOPATH='$(PWD)' go test -v grapnel/flag
+	GOPATH='$(PWD)' go test -v grapnel/util
+	GOPATH='$(PWD)' go test -v grapnel/toml
 	GOPATH='$(PWD)' go test -v grapnel
 
 smoketest: grapnel
 	./grapnel install -c testfiles/smoke.toml -t $(TESTTARGET) -v
-
-dogfood: grapnel
-	./grapnel install -c grapnel.toml -t ./dogfood -v
 
 .PHONY: all clean smoketest unittest

@@ -23,10 +23,12 @@ THE SOFTWARE.
 
 import (
   "testing"
-//  log "github.com/ngmoco/timber"
+  log "grapnel/log"
 )
 
 func TestParseVersionSpec(t *testing.T) {
+  log.SetGlobalLogLevel(log.DEBUG)
+
   // positive tests
   for k,v := range map[string]*VersionSpec {
     ">1.0": NewVersionSpec(OpGt, 1, 0, -1), 
@@ -65,6 +67,8 @@ func TestParseVersionSpec(t *testing.T) {
 }
 
 func TestParseVersion(t *testing.T) {
+  log.SetGlobalLogLevel(log.DEBUG)
+
   // positive tests
   for k,v := range map[string]*Version {
     "1.0": NewVersion(1, 0, -1), 
@@ -107,6 +111,8 @@ type vsRankTest struct {
 }
 
 func TestVersionSpecRank(t *testing.T) {
+  log.SetGlobalLogLevel(log.DEBUG)
+
   for _,item := range []vsRankTest {
     vsRankTest{"=1", "=5", false, false,},
     vsRankTest{">1", "=5", false, true,},
@@ -140,7 +146,7 @@ type vsSatisfyTest struct {
 }
 
 func TestVersionSatisfaction(t *testing.T) {
-  initTestLogging()
+  log.SetGlobalLogLevel(log.DEBUG)
 
   for _,item := range []vsSatisfyTest {
     vsSatisfyTest{"=1", "5", false,},

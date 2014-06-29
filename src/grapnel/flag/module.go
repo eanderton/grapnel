@@ -27,7 +27,7 @@ import (
 )
 
 type Flag interface {
-  Dispatch(val string) error
+  Dispatch(name string, values []string) (int, error)
 }
 
 type CommandFn func(cmd *Command, args []string) error
@@ -43,15 +43,15 @@ type Command struct {
 }
 
 // internal dispatch for flags - eases composition of the Execute loop
-func dispatchFlag(cmdName string, flags FlagMap, name string, val string) error {
+func dispatchFlag(cmdName string, flags FlagMap, name string, values []string) (int, error) {
   if flag, ok := flags[name]; ok {
-    if err := flag.Dispatch(val); err != nil {
-      return err
+    if consumed, err := flag.Dispatch(name, values); err != nil {
+      return consumed, err
+    } else {
+      return consumed, nil
     }
-  } else {
-    return fmt.Errorf("Unknown flag '%v' on command '%v'", name, cmdName)
-  }
-  return nil
+  } 
+  return 0, fmt.Errorf("Unknown flag '%v' on command '%v'", name, cmdName)
 }
 
 // Process args as subcommands and flags.
@@ -104,8 +104,8 @@ func (self *Command) Execute(args... string) error {
 
     // flag parsing
     if strings.HasPrefix(name, "-") {
-      value := ""
       if strings.HasPrefix(name, "--") {
+        value := ""
         name = name[2:] // strip leading '--'
         // handle multiple special cases for var=name handling
         if strings.HasSuffix(name, "=") {
@@ -117,8 +117,8 @@ func (self *Command) Execute(args... string) error {
           }
         } else if idx := strings.Index(name, "="); idx > 0 {
           //--opt=value
-          name = name[:idx]
           value = name[idx+1:]
+          name = name[:idx]
         } else if ii+1 < len(args) && strings.HasPrefix(args[ii+1], "=") {
           ii++
           if args[ii] == "=" {
@@ -132,37 +132,45 @@ func (self *Command) Execute(args... string) error {
             value = args[ii][1:]
           }
         } 
+        // dispatch the flag
+        if _, err := dispatchFlag(cmdName, flags, name, []string{value}); err != nil {
+          return err
+        }
+
       } else {
         name = name[1:] // strip leading '-'
         // handle multiple single-char flags smushed together
         // NOTE: stop short of last char
-        for jj := 0; jj < len(name)-1; jj++ {
+        var jj int = 0
+        for jj = jj; jj < len(name)-1; jj++ {
           internalFlag := string(name[jj])
-          if err := dispatchFlag(cmdName, flags, internalFlag, ""); err != nil {
+          if _, err := dispatchFlag(cmdName, flags, internalFlag, []string{""}); err != nil {
             return err
           }
         }
         // reset name and get optional value
         // NOTE: this is done so the last single-char in the set gets a value argument
-        name = string(name[len(name)-1])
-        if ii+1 < len(args) {
-          ii++
-          value = args[ii]
+        name = string(name[jj])
+        
+        // execute the flag
+        flagArgs := args[ii+1:]
+        if consumed, err := dispatchFlag(cmdName, flags, name, flagArgs); err != nil {
+          return err
+        } else {
+          ii += consumed
         }
-      }
-      // execute the flag
-      if err := dispatchFlag(cmdName, flags, name, value); err != nil {
-        return err
       }
     } else {
       // simple arg
       posArgs = append(posArgs, name)
     }
   }
-
+  fmt.Printf("posargs: %v\n", posArgs)
   // execute the function
   if cmd.Fn != nil {
     return cmd.Fn(cmd, posArgs) 
+  } else if len(posArgs) > 0 {
+    return fmt.Errorf("Extra arguments passed to command")
   }
   return nil
 }
@@ -197,12 +205,9 @@ func BoolFlag(ptr *bool) *boolFlag {
   return &boolFlag { ptr: ptr }
 }
 
-func (self *boolFlag) Dispatch(val string) error {
-  if val != "" {
-    return fmt.Errorf("Flag %v does not take a value")
-  }
+func (self *boolFlag) Dispatch(name string, values []string) (int, error) {
   *(self.ptr) = true
-  return nil
+  return 0, nil
 }
 
 
@@ -215,9 +220,12 @@ func StringFlag(ptr *string) *stringFlag {
   return &stringFlag { ptr: ptr }
 }
 
-func (self *stringFlag) Dispatch(val string) error {
-  *(self.ptr) = val
-  return nil
+func (self *stringFlag) Dispatch(name string, values []string) (int, error) {
+  if len(values) == 0 {
+    return 0, fmt.Errorf("Flag %v requires a value", name)
+  }
+  *(self.ptr) = values[0]
+  return 1, nil
 }
 
 //NOTE: add additional types here

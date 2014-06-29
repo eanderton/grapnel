@@ -25,14 +25,6 @@ import (
   "log"
 )
 
-//TODO: drop
-func initTestLogging() {
-}
-
-//TODO: drop
-func InitLogging() {
-}
-
 const (
   DEBUG = iota
   INFO
@@ -41,7 +33,9 @@ const (
   FATAL
 )
 
-var logLevel int = DEBUG
+var (
+  logLevel int = WARN
+)
 
 // Set the log level for the entire application
 func SetGlobalLogLevel(level int) {

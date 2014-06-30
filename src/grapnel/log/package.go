@@ -61,7 +61,7 @@ func (self *Logger) AddPrefix(prefix string) *Logger {
 }
 
 func (self *Logger) log(level int, args... interface{}) {
-  if len(args) == 0 { return }
+  if len(args) == 0 || level < logLevel { return }
 
   // determine if we're a format style print or not
   fmtString, usePrintf := args[0].(string)

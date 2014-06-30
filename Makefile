@@ -23,11 +23,14 @@ PROGRAM_NAME = grapnel
 
 TESTTARGET := ./foobar
 PWD := $(shell pwd)
-all: unittest smoketest
 
 # Quick-and-dirty dependency trigger - recompile only if a .go file changes
 GOFILES := $(shell find src -type f -name *.go)
 
+# Default target - used by vim quickfix and travis-ci
+all: unittest smoketest
+
+# Start over
 clean:
 	-rm -f grapnel
 	-rm -rf $(TESTTARGET)
@@ -40,6 +43,7 @@ emit-config:
 	> src/grapnel/config.go
 
 # Normalize 'go test' output to align with 'go build'
+# NOTE: this is a tremendous help for vim's 'quickfix' feature
 go-unittest:
 	@GOPATH='$(PWD)' go test -v $(TESTPATH) \
 	| sed -e 's#	\(.*\).go:#src/$(TESTPATH)/\1.go:#'

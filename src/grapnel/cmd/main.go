@@ -48,6 +48,8 @@ func configureLogging() {
     log.SetGlobalLogLevel(log.ERROR)
   } else if flagVerbose {
     log.SetGlobalLogLevel(log.INFO)
+  } else {
+    log.SetGlobalLogLevel(log.WARN)
   }
 }
 
@@ -123,13 +125,14 @@ func installFn(cmd *Command, args []string) error {
 
   // write the library data out
   // TODO: make a part of a proper package file instead
-  log.Info("Writing lock file.")
-  pkgFile, err := os.Create(path.Join(targetPath, "grapnel-lock.toml"))
+  lockFilename := path.Join(targetPath, "grapnel-lock.toml")
+  pkgFile, err := os.Create(lockFilename)
   defer pkgFile.Close()
   if err != nil {
-    log.Error("Cannot open lock file")
+    log.Error("Cannot open lock file: %s", lockFilename)
     return err 
   }
+  log.Info("Writing lock file: %s", lockFilename)
   for _, lib := range libs {
     lib.ToToml(pkgFile)
   }

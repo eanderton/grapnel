@@ -24,5 +24,5 @@ THE SOFTWARE.
 
 var (
   PROGRAM_NAME string = "grapnel"
-  VERSION string = "0.2"
+  VERSION string = "0.3"
 )

@@ -33,8 +33,8 @@ import (
 
 // application configurables
 var (
-  configFileName string
-  targetPath string
+  configFileName string = "grapnel.toml"
+  targetPath string = "./src"
   flagQuiet bool
   flagVerbose bool
   flagDebug bool
@@ -222,9 +222,13 @@ var rootCmd = &Command{
 
 func main() {
   log.SetFlags(0)
-  // TODO: compile defaults and set rootCmd.Help
+  rootCmd.Help = 
+    fmt.Sprintf("Defaults:\n") +
+    fmt.Sprintf("  Config file = %s\n", configFileName) +
+    fmt.Sprintf("  Target path = %s\n", targetPath) +
+    "\n" + rootCmd.Help
   if err := rootCmd.Execute(os.Args...); err != nil {
     log.Error(err)
-    rootCmd.ShowHelp("")
+    rootCmd.ShowHelp(os.Args[0])
   }
 }

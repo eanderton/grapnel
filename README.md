@@ -38,7 +38,7 @@ Run the provided makefile:
 make grapnel
 ```
 
-... or set GOPATH to the currenct directory and use 'go' directly:
+... or set GOPATH to the current directory and use 'go' directly:
 
 ```
 go build -o grapnel grapnel/cmd

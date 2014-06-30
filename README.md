@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/eanderton/grapnel.svg)](https://travis-ci.org/eanderton/grapnel)
+
 Grapnel
 =======
 

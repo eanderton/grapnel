@@ -104,6 +104,8 @@ func BuildTestGitRepo(repoName string) string {
   cmd := util.NewRunContext(repoPath)
   for _, data := range [][]string {
     {"git", "init"},
+    {"git", "config", "user.email", "you@example.com"},
+    {"git", "config", "user.name", "Your Name"},
     {"touch", "README"},
     {"git", "add", "README"},
     {"git", "commit", "-a", "-m", "first commit"},

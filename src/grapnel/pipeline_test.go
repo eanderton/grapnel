@@ -69,7 +69,7 @@ func TestResolvers(t *testing.T) {
   // test using the test data
   testDeps := getTestPipelineDependencyData()
   for ii, dep := range testDeps {
-    if _, err := dep.Resolve(); err != nil {
+    if _, err := Resolve(dep); err != nil {
       t.Errorf("Error resolving dependency %v ('%v'): %v",
         ii, dep.Import, err)
     }

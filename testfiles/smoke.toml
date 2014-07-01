@@ -34,3 +34,6 @@ import = "github.com/gorilla/mux"
 [deps.toml]
 import = "github.com/pelletier/go-toml"
 tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"
+
+[deps.cobra]
+import = "github.com/spf13/cobra"

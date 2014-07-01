@@ -43,43 +43,65 @@ var (
   InstallIgnorePatterns IgnorePatternMap = make(IgnorePatternMap)
 )
 
-func (self *Dependency) Resolve() (*Library, error) {
+func GetResolver(dep *Dependency) ResolverFn {
+  // TODO: apply middleware filtering here (?)
+
   // attempt to resolve by type
-  if fn, ok := TypeResolvers[self.Type]; ok {
-    return fn(self)
+  if fn, ok := TypeResolvers[dep.Type]; ok {
+    return fn
   }
 
-  if self.Url != nil {
+  if dep.Url != nil {
     // attempt to resolve by url host
-    if fn, ok := UrlHostResolvers[self.Url.Host]; ok {
-      return fn(self)
+    if fn, ok := UrlHostResolvers[dep.Url.Host]; ok {
+      return fn
     }
-     
+
     // attempt to resolve by url host
-    if fn, ok := UrlSchemeResolvers[self.Url.Scheme]; ok {
-      return fn(self)
+    if fn, ok := UrlSchemeResolvers[dep.Url.Scheme]; ok {
+      return fn
     }
   }
 
   // attempt to resolve by hostpart of import
-  if self.Import != "" {
-    parts := strings.Split(self.Import, "/")
+  if dep.Import != "" {
+    parts := strings.Split(dep.Import, "/")
     if len(parts) > 0 {
       hostPart := parts[0]
       log.Info("resolving by hostpart: %v", hostPart)
       if fn, ok := UrlHostResolvers[hostPart]; ok {
-        return fn(self)
+        return fn
       }
     }
   }
-  
-  return nil, fmt.Errorf("Cannot identify resolver for dependency: '%v'", self.Import)
+  return nil
 }
 
+func Resolve(dep *Dependency) (*Library, error) {
+  // resolve the library
+  fn := GetResolver(dep)
+  if fn == nil {
+    return nil, fmt.Errorf("Cannot identify resolver for dependency: '%v'", dep.Name)
+  }
+
+  // resolve the dependency
+  lib, err := fn(dep)
+  if err != nil {
+    return nil, err
+  }
+
+  // add additional deps from this library
+  if err := AddDependencies(lib); err != nil {
+    return nil, err
+  }
+  return lib, nil
+}
+
+// remove duplicates while preserving dependency order
 func DeduplicateDeps(deps []*Dependency) ([]*Dependency, error) {
   tempQueue := make([]*Dependency, 0)
   for ii, src := range deps {
-    jj := ii+1; 
+    jj := ii+1;
     for ; jj < len(deps); jj++ {
       dest := deps[jj]
       if src.Import == dest.Import {
@@ -105,7 +127,7 @@ func LibResolveDeps(libs map[string]*Library, deps []*Dependency) ([]*Dependency
   for _, dep := range deps {
     if lib, ok := libs[dep.Import]; ok {
       if !dep.IsSatisfiedBy(lib.Version) {
-        return nil, fmt.Errorf("Cannot reconcile '%v'", dep.Import) 
+        return nil, fmt.Errorf("Cannot reconcile '%v'", dep.Import)
       }
     } else {
       tempQueue = append(tempQueue, dep)
@@ -135,7 +157,7 @@ func ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
     // spawn goroutines for each dependency to be resolved
     for _, dep := range workQueue {
       go func(dep *Dependency) {
-        lib, err := dep.Resolve()
+        lib, err := Resolve(dep)
         if err != nil {
           errors <- err
         } else {

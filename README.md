@@ -3,7 +3,7 @@ Grapnel
 [![Build Status](https://travis-ci.org/eanderton/grapnel.svg)](https://travis-ci.org/eanderton/grapnel)
 
 A dependency management solution for the Go Programming Language.  At the moment
-only the basic 'install' mode is supported for github repositories.  Support for
+only the basic 'install' mode is supported for git repositories.  Support for
 other SCM types, and other major repo sites, is planned.
 
 ```

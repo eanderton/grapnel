@@ -49,7 +49,7 @@ func NewLibrary(dep *Dependency) *Library {
   if dep.Url != nil {
     newUrl = &url.URL {
       Scheme: dep.Url.Scheme,
-      Opaque: dep.Url.Opaque, 
+      Opaque: dep.Url.Opaque,
       User: dep.Url.User,
       Host: dep.Url.Host,
       Path: dep.Url.Path,
@@ -93,7 +93,7 @@ func (self *Library) Destroy() error {
 }
 
 func (self *Library) ToToml(writer io.Writer) {
-  fmt.Fprintf(writer, "\n[deps.%s]\n", self.Dependency.Name)
+  fmt.Fprintf(writer, "\n[[dependencies]]\n")
   if self.Version.Major > 0 {
     fmt.Fprintf(writer, "version = \"==%v\"\n", self.Version)
   } else {

@@ -3,7 +3,6 @@ package grapnel
 import (
   "runtime"
   "go/build"
-  "strings"
   log "grapnel/log"
 )
 
@@ -47,8 +46,6 @@ func AddDependencies(lib* Library) error {
       if err != nil {
         return err
       }
-      dep.Name = strings.Replace(importName, ".", "_", -1)
-      dep.Name = strings.Replace(dep.Name, "/", "_", -1)
       lib.Dependencies = append(lib.Dependencies, dep)
     }
   }

@@ -62,7 +62,7 @@ func (self *RunContext) Start(cmd string, args... string) (*exec.Cmd, error) {
   cmdObj := exec.Command(cmd, args...)
   cmdObj.Dir = self.WorkingDirectory
   err := cmdObj.Start()
-  return cmdObj, err 
+  return cmdObj, err
 }
 
 func (self *RunContext) MustRun(cmd string, args... string) {
@@ -97,10 +97,17 @@ func CopyFileTree(dest string, src string, ignore string) error {
     relativePath, _ := filepath.Rel(src, path)
     destPath := filepath.Join(dest, relativePath)
     if info.IsDir() {
+      // don't process this if the directory is marked as 'skip'
       if ignoreFn(info.Name()) {
         return filepath.SkipDir
       }
-    } else { 
+      // create target directory if it's not already there
+      if !so.Exists(destPath) {
+        if err := os.MkdirAll(destPath, 0755); err != nil {
+          return err
+        }
+      }
+    } else {
       if ignoreFn(info.Name()) {
         return nil  // skip file
       }
@@ -109,6 +116,6 @@ func CopyFileTree(dest string, src string, ignore string) error {
         return fmt.Errorf("Could not copy file '%s' to '%s'", path, destPath)
       }
     }
-    return nil 
+    return nil
   })
 }

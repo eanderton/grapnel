@@ -48,7 +48,7 @@ go build -o grapnel grapnel/cmd
 About
 =====
 
-Grapnel is a work in progress. Release v0.1 features a very rudimentary take on
+Grapnel is a work in progress. Release v0.2 features a very rudimentary take on
 how the tool is designed to configure dependencies from outside your source.
 
 Grapnel's approach is modeled on Ruby's Bundler, with some inspiration from

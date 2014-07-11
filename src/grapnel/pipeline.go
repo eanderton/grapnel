@@ -81,7 +81,7 @@ func Resolve(dep *Dependency) (*Library, error) {
   // resolve the library
   fn := GetResolver(dep)
   if fn == nil {
-    return nil, fmt.Errorf("Cannot identify resolver for dependency: '%v'", dep.Name)
+    return nil, fmt.Errorf("Cannot identify resolver for dependency: '%v'", dep.Import)
   }
 
   // resolve the dependency

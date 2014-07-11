@@ -3,7 +3,7 @@
 Go library for the [TOML](https://github.com/mojombo/toml) format.
 
 This library supports TOML version
-[v0.1.0](https://github.com/mojombo/toml/blob/master/versions/toml-v0.1.0.md)
+[v0.2.0](https://github.com/mojombo/toml/blob/master/versions/toml-v0.2.0.md)
 
 [![Build Status](https://travis-ci.org/pelletier/go-toml.png?branch=master)](https://travis-ci.org/pelletier/go-toml)
 
@@ -60,14 +60,14 @@ much appreciated!
 
 You have to make sure two kind of tests run:
 
-1. The Go unit tests: `go test`
-2. The TOML examples base: `./test_program/go-test.sh`
+1. The Go unit tests
+2. The TOML examples base
 
 You can run both of them using `./test.sh`.
 
 ## License
 
-Copyright (c) 2013 Thomas Pelletier
+Copyright (c) 2013, 2014 Thomas Pelletier, Eric Anderton
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

@@ -57,7 +57,7 @@ func dispatchFlag(cmdName string, flags FlagMap, name string, values []string) (
     } else {
       return consumed, nil
     }
-  } 
+  }
   return 0, fmt.Errorf("Unknown flag '%v' on command '%v'", name, cmdName)
 }
 
@@ -69,7 +69,7 @@ func (self *Command) Execute(args... string) error {
   if len(args) == 1 {
     return self.ShowHelp(cmdName)
   }
-  
+
   // figure out commands and remaining args to use based on command map
   flags := make(FlagMap)
   cmd := self
@@ -83,7 +83,7 @@ func (self *Command) Execute(args... string) error {
       }
     }
     if len(cmd.Commands) == 0 { break }
-  
+
     // verify the command name
     nextCmdName := args[ii]
     if nextCmdName == "help" {
@@ -140,7 +140,7 @@ func (self *Command) Execute(args... string) error {
             //--opt =value
             value = args[ii][1:]
           }
-        } 
+        }
         // dispatch the flag
         if _, err := dispatchFlag(cmdName, flags, name, []string{value}); err != nil {
           return err
@@ -160,7 +160,7 @@ func (self *Command) Execute(args... string) error {
         // reset name and get optional value
         // NOTE: this is done so the last single-char in the set gets a value argument
         name = string(name[jj])
-        
+
         // execute the flag
         flagArgs := args[ii+1:]
         if consumed, err := dispatchFlag(cmdName, flags, name, flagArgs); err != nil {
@@ -176,7 +176,7 @@ func (self *Command) Execute(args... string) error {
   }
   // execute the function
   if cmd.Fn != nil {
-    return cmd.Fn(cmd, posArgs) 
+    return cmd.Fn(cmd, posArgs)
   } else if len(posArgs) > 0 {
     return fmt.Errorf("Extra arguments passed to command")
   }
@@ -211,7 +211,7 @@ func SimpleFlagFn(fn func() error) FlagFn {
 func SimpleCommandFn(fn func() error) CommandFn {
   return func (cmd *Command, args []string) error {
     return fn()
-  }  
+  }
 }
 
 //NOTE: add additional types here

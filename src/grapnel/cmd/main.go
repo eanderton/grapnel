@@ -24,22 +24,22 @@ THE SOFTWARE.
 import (
   . "grapnel"
   . "grapnel/flag"
-  "path"
   "os"
   "fmt"
   log "grapnel/log"
-  toml "github.com/pelletier/go-toml"
 )
 
-// application configurables
+// application configurables w/default settings
 var (
-  configFileName string = "grapnel.toml"
+  configFileName string = "/etc/grapnel-config.toml"
+  packageFileName string = "./grapnel.toml"
+  lockFileName string = ""
   targetPath string = "./src"
+
   flagQuiet bool
   flagVerbose bool
   flagDebug bool
 )
-
 
 func configureLogging() {
   if flagDebug {
@@ -54,111 +54,16 @@ func configureLogging() {
 }
 
 
-func configurePipeline() {
+func configurePipeline() error {
+  // TODO: configure other details out of config file
+
   // configure Git
   TypeResolvers["git"] = GitResolver
   UrlSchemeResolvers["git"] = GitResolver
-  UrlHostResolvers["github.com"] = GitResolver 
+  UrlHostResolvers["github.com"] = GitResolver
   InstallIgnorePatterns["git"] = GitIgnorePattern
 
   // TODO: other SCMs
-}
-
-
-func loadDependencies(filename string) ([]*Dependency, error) {
-  tree, err := toml.LoadFile(filename)
-  if err != nil {
-    return nil, err
-  }
-
-  tree = tree.Get("deps").(*toml.TomlTree)
-  if tree == nil {
-    log.Fatal("No dependencies to process")
-  }
-
-  deplist := make([]*Dependency, 0)
-  for _,key := range tree.Keys() {
-    depTree := tree.Get(key).(*toml.TomlTree)
-    if dep, err := NewDependencyFromToml(key, depTree); err != nil {
-      return nil, fmt.Errorf("In section '%v': %v", key, err)
-    } else {
-      deplist = append(deplist, dep)
-    }
-  }
-
-  return deplist, nil
-}
-
-func installFn(cmd *Command, args []string) error {
-  configureLogging()
-  configurePipeline()
-
-  // TODO: resolve path for targetPath
-  log.Info("installing to: %v", targetPath) 
-  if err := os.MkdirAll(targetPath, 0755); err != nil {
-    return err
-  }
-
-  // get the dependencies from the config file
-  deplist, err := loadDependencies(configFileName)
-  if err != nil {
-    return err
-  }
-  
-  var libs map [string]*Library
-  // cleanup
-  defer func() {
-    for _, lib := range libs {
-      lib.Destroy()
-    }  
-  }()
-  
-  // resolve all the dependencies
-  libs, err = ResolveDependencies(deplist)
-  if err != nil {
-    return err
-  }
-
-  // install all the dependencies
-  log.Info("Resolved %v dependencies. Installing.", len(libs))
-  InstallLibraries(targetPath, libs)
-
-  // write the library data out
-  // TODO: make a part of a proper package file instead
-  lockFilename := path.Join(targetPath, "grapnel-lock.toml")
-  pkgFile, err := os.Create(lockFilename)
-  defer pkgFile.Close()
-  if err != nil {
-    log.Error("Cannot open lock file: %s", lockFilename)
-    return err 
-  }
-  log.Info("Writing lock file: %s", lockFilename)
-  for _, lib := range libs {
-    lib.ToToml(pkgFile)
-  }
-  
-  log.Info("Install complete")
-  return nil
-}
-
-func updateFn(cmd *Command, args []string) error {
-  configureLogging()
-  // Do Stuff Here
-  log.Info("Update complete")
-  return nil
-}
-
-func infoFn(cmd *Command, args []string) error {
-  configureLogging()
-  
-  // get the dependencies from the config file
-  deplist, err := loadDependencies(configFileName)
-  if err != nil {
-    return err
-  }
-  for _, dep := range deplist {
-    dep.ToToml(os.Stdout) 
-  }
   return nil
 }
 
@@ -192,31 +97,14 @@ var rootCmd = &Command{
       ArgDesc: "[filename]",
       Fn: StringFlagFn(&configFileName),
     },
-    "target": &Flag {
-      Alias: "t",
-      Desc: "Where to manage packages",
-      ArgDesc: "[path]",
-      Fn: StringFlagFn(&targetPath),
-    },
     "version": &Flag {
       Desc: "Displays version information",
       Fn: SimpleFlagFn(ShowVersion),
     },
   },
   Commands: CommandMap {
-    "install": &Command{
-      Desc: "Ensure that dependencies are installed and ready for use.",
-      Fn: installFn,
-    },
-/*    "update": &Command{
-      Desc: "Update the current environment.",
-      Fn: updateFn,
-    },
-    "info": &Command{
-      Desc: "Query for package information",
-      Fn: infoFn,
-    },
-*/    "version": &Command{
+    "install": &installCmd,
+    "version": &Command{
       Desc: "Version information",
       Fn: SimpleCommandFn(ShowVersion),
     },
@@ -225,10 +113,10 @@ var rootCmd = &Command{
 
 func main() {
   log.SetFlags(0)
-  rootCmd.Help = 
+  rootCmd.Help =
     fmt.Sprintf("Defaults:\n") +
     fmt.Sprintf("  Config file = %s\n", configFileName) +
-    fmt.Sprintf("  Target path = %s\n", targetPath) +
+    fmt.Sprintf("  Package file = %s\n", packageFileName) +
     "\n" + rootCmd.Help
   if err := rootCmd.Execute(os.Args...); err != nil {
     log.Error(err)

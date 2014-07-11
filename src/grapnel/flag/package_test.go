@@ -74,7 +74,7 @@ func argsEq(a, b []string) bool {
   return true
 }
 
-func TestExecute(t *testing.T) { 
+func TestExecute(t *testing.T) {
   for i, data := range []struct{
     Args []string
     Quiet bool
@@ -131,7 +131,7 @@ func TestExecute(t *testing.T) {
     t.Logf("test %v", i)
     resetCmdTest()
     if err := rootCmd.Execute(data.Args...); err != nil {
-      t.Errorf("%v", err) 
+      t.Errorf("%v", err)
     }
     if flagQuiet != data.Quiet {
       t.Errorf("flagQuiet is %v, expected %v", flagQuiet, data.Quiet)

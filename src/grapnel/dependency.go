@@ -25,11 +25,9 @@ import (
   toml "github.com/pelletier/go-toml"
   "fmt"
   "net/url"
-  "io"
 )
 
 type Dependency struct {
-  Name string
   Import string
   Url *url.URL
   Type string
@@ -79,7 +77,7 @@ func (self *Dependency) Reconcile(other *Dependency) (*Dependency, error) {
   return nil, fmt.Errorf("Cannot reconcile dependencies for '%v'", self.Import)
 }
 
-func NewDependencyFromToml(name string, tree *toml.TomlTree) (*Dependency, error) {
+func NewDependencyFromToml(tree *toml.TomlTree) (*Dependency, error) {
   var err error = nil
   var dep *Dependency
 
@@ -91,31 +89,9 @@ func NewDependencyFromToml(name string, tree *toml.TomlTree) (*Dependency, error
   if err != nil {
     return nil, err
   }
-  dep.Name = name
   dep.Type = tree.GetDefault("type", "").(string)
   dep.Branch = tree.GetDefault("branch", "").(string)
   dep.Tag = tree.GetDefault("tag", "").(string)
 
   return dep, nil
 }
-
-func (self *Dependency) ToToml(writer io.Writer) { 
-  fmt.Fprintf(writer, "\n[deps.%s]\n", self.Name)
-  fmt.Fprintf(writer, "version = \"%v\"\n", self.VersionSpec)
-  if self.Type != "" {
-    fmt.Fprintf(writer, "type = \"%s\"\n", self.Type)
-  }
-  if self.Import != "" {
-    fmt.Fprintf(writer, "import = \"%s\"\n", self.Import)
-  }
-  if self.Url != nil {
-    fmt.Fprintf(writer, "url = \"%s\"\n", self.Url.String())
-  }
-  if self.Branch != "" {
-    fmt.Fprintf(writer, "branch = \"%s\"\n", self.Branch)
-  }
-  if self.Tag != "" {
-    fmt.Fprintf(writer, "tag = \"%s\"\n", self.Tag)
-  }
-}
-

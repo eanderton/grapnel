@@ -91,7 +91,7 @@ func Resolve(dep *Dependency) (*Library, error) {
   }
 
   // add additional deps from this library
-  if err := AddDependencies(lib); err != nil {
+  if err := lib.AddDependencies(); err != nil {
     return nil, err
   }
   return lib, nil

@@ -33,7 +33,7 @@ import (
 var (
   configFileName string = "/etc/grapnel-config.toml"
   packageFileName string = "./grapnel.toml"
-  lockFileName string = ""
+  lockFileName string = "./grapnel-lock.toml"
   targetPath string = "./src"
 
   flagQuiet bool
@@ -104,6 +104,7 @@ var rootCmd = &Command{
   },
   Commands: CommandMap {
     "install": &installCmd,
+    "update": &updateCmd,
     "version": &Command{
       Desc: "Version information",
       Fn: SimpleCommandFn(ShowVersion),
@@ -116,6 +117,7 @@ func main() {
   rootCmd.Help =
     fmt.Sprintf("Defaults:\n") +
     fmt.Sprintf("  Config file = %s\n", configFileName) +
+    fmt.Sprintf("  Lock file = %s\n", lockFileName) +
     fmt.Sprintf("  Package file = %s\n", packageFileName) +
     "\n" + rootCmd.Help
   if err := rootCmd.Execute(os.Args...); err != nil {

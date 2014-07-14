@@ -22,6 +22,7 @@ THE SOFTWARE.
 */
 
 import (
+  so "grapnel/stackoverflow"
   toml "github.com/pelletier/go-toml"
   "fmt"
   "net/url"
@@ -94,4 +95,40 @@ func NewDependencyFromToml(tree *toml.TomlTree) (*Dependency, error) {
   dep.Tag = tree.GetDefault("tag", "").(string)
 
   return dep, nil
+}
+
+func loadDependencies(filename string) ([]*Dependency, error) {
+  tree, err := toml.LoadFile(filename)
+  if err != nil {
+    return nil, err
+  }
+
+  items := tree.Get("dependencies").([]*toml.TomlTree)
+  if items == nil {
+    return nil, fmt.Errorf("No dependencies to process")
+  }
+
+  deplist := make([]*Dependency, 0)
+  for idx, item := range items {
+    if dep, err := NewDependencyFromToml(item); err != nil {
+      return nil, fmt.Errorf("In dependency #%d: %v", idx, err)
+    } else {
+      deplist = append(deplist, dep)
+    }
+  }
+
+  return deplist, nil
+}
+
+func LoadGrapnelDepsfile(searchFiles... string) ([]*Dependency, error) {
+  for _,filename := range searchFiles {
+    if so.Exists(filename) {
+      if deplist, err := loadDependencies(filename); err != nil {
+        return nil, err
+      } else {
+        return deplist, nil
+      }
+    }
+  }
+  return nil, nil
 }

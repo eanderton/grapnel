@@ -28,32 +28,7 @@ import (
   "os"
   "fmt"
   log "grapnel/log"
-  toml "github.com/pelletier/go-toml"
 )
-
-
-func loadDependencies(filename string) ([]*Dependency, error) {
-  tree, err := toml.LoadFile(filename)
-  if err != nil {
-    return nil, err
-  }
-
-  items := tree.Get("dependencies").([]*toml.TomlTree)
-  if items == nil {
-    log.Fatal("No dependencies to process")
-  }
-
-  deplist := make([]*Dependency, 0)
-  for idx, item := range items {
-    if dep, err := NewDependencyFromToml(item); err != nil {
-      return nil, fmt.Errorf("In dependency #%d: %v", idx, err)
-    } else {
-      deplist = append(deplist, dep)
-    }
-  }
-
-  return deplist, nil
-}
 
 // TODO: if no lock file can be found, then fail over to update instead
 // TODO: move lock file writing to updateFn()
@@ -63,11 +38,8 @@ func installFn(cmd *Command, args []string) error {
   configureLogging()
   configurePipeline()
 
-  if len(args) > 1 {
+  if len(args) > 0 {
     return fmt.Errorf("Too many arguments for 'install'")
-  }
-  if len(args) == 1 {
-    targetPath = args[0]
   }
 
   // compose a new lock file path out of the old package path
@@ -75,22 +47,17 @@ func installFn(cmd *Command, args []string) error {
     lockFileName = path.Join(path.Dir(packageFileName), "grapnel-lock.toml")
   }
 
-  // open it now before we expend any real effort
-  pkgFile, err := os.Create(lockFileName)
-  defer pkgFile.Close()
+  // get dependencies from the lockfile
+  deplist, err := LoadGrapnelDepsfile(lockFileName)
   if err != nil {
-    log.Error("Cannot open lock file: '%s'", lockFileName)
     return err
+  } else if deplist == nil {
+    // TODO: fail over to update instead?
+    return fmt.Errorf("Cannot open lock file: '%s'", lockFileName)
   }
 
   log.Info("installing to: %v", targetPath)
   if err := os.MkdirAll(targetPath, 0755); err != nil {
-    return err
-  }
-
-  // get the dependencies from the config file
-  deplist, err := loadDependencies(packageFileName)
-  if err != nil {
     return err
   }
 
@@ -112,29 +79,22 @@ func installFn(cmd *Command, args []string) error {
   log.Info("Resolved %v dependencies. Installing.", len(libs))
   InstallLibraries(targetPath, libs)
 
-  // write the library data out
-  log.Info("Writing lock file")
-  for _, lib := range libs {
-    lib.ToToml(pkgFile)
-  }
-
   log.Info("Install complete")
   return nil
 }
 
 var installCmd = Command{
-  Desc: "Ensure that dependencies are installed and ready for use.",
-  ArgDesc: "[targetPath]",
-  Help: " Installs packages at 'targetPath', from configured package file.\n" +
+  Desc: "Ensure that locked dependencies are installed and ready for use.",
+  Help: " Installs packages at 'targetPath', from configured lock file.\n" +
     "\nDefaults:\n" +
-    "  Package file = " + packageFileName + "\n" +
+    "  Lock file = " + lockFileName + "\n" +
     "  Target path = " + targetPath + "\n",
   Flags: FlagMap {
-    "pconfig": &Flag {
-      Alias: "p",
-      Desc: "Grapnel package file",
+    "lockfile": &Flag {
+      Alias: "l",
+      Desc: "Grapnel lock file",
       ArgDesc: "[filename]",
-      Fn: StringFlagFn(&packageFileName),
+      Fn: StringFlagFn(&lockFileName),
     },
     "target": &Flag {
       Alias: "t",

@@ -58,7 +58,7 @@ unittest:
 
 # Basic command test
 smoketest: grapnel
-	./grapnel grapnel -c testfiles/smoke.toml $(TESTTARGET) -v
+	./grapnel update -p testfiles/smoke.toml -t $(TESTTARGET) --debug
 
 # Target command to build
 grapnel: $(GOFILES)

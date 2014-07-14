@@ -49,8 +49,8 @@ func TestNewDepdendency(t *testing.T) {
         dep.Url.String(), "http://github.com/foo/bar")
   }
   if dep.Oper != OpGte ||
-     dep.VersionSpec.Major != 1 || 
-     dep.VersionSpec.Minor != 2 || 
+     dep.VersionSpec.Major != 1 ||
+     dep.VersionSpec.Minor != 2 ||
      dep.VersionSpec.Subminor != 3 {
     t.Errorf("Bad value for version: '%v'. Expected: '%v'",
         dep.VersionSpec.String(), ">=1.2.3")
@@ -67,9 +67,9 @@ func TestNewDependencyFromToml(t *testing.T) {
   }
   name := "test_import"
   entry := tree.Get(name).(*toml.TomlTree)
-  if dep, err = NewDependencyFromToml(name, entry); err != nil {
+  if dep, err = NewDependencyFromToml(entry); err != nil {
     t.Errorf("Error building dependency from TOML: %v", err)
-  } 
+  }
   if dep.Import != "foo/bar/baz" {
     t.Errorf("Bad value for import: '%v'. Expected: '%v'", dep.Import, "foo/bar/baz")
   }
@@ -86,8 +86,8 @@ func TestNewDependencyFromToml(t *testing.T) {
     t.Errorf("Bad value for url: '%v'. Expected: '%v'",
         dep.Url.String(), "http://github.com/foo/bar")
   }
-  if dep.VersionSpec.Major != 1 || 
-     dep.VersionSpec.Minor != 0 || 
+  if dep.VersionSpec.Major != 1 ||
+     dep.VersionSpec.Minor != 0 ||
      dep.VersionSpec.Subminor != -1 {
     t.Errorf("Bad value for version: '%v'. Expected: '%v'",
         dep.VersionSpec.String(), "1.0.*")

@@ -23,10 +23,12 @@ THE SOFTWARE.
 
 import (
   "net/url"
+  "path"
   "path/filepath"
   "os"
   "io"
   "fmt"
+  "go/build"
   util "grapnel/util"
   log "grapnel/log"
 )
@@ -68,10 +70,6 @@ func NewLibrary(dep *Dependency) *Library {
   }
 }
 
-func (self *Library) AddDependencies(deps... *Dependency) {
-  self.Dependencies = append(self.Dependencies, deps...)
-}
-
 func (self *Library) Install(installRoot string, ignorePattern string) error {
   // set up root target dir
   importPath := filepath.Join(installRoot, self.Import)
@@ -90,6 +88,45 @@ func (self *Library) Install(installRoot string, ignorePattern string) error {
 
 func (self *Library) Destroy() error {
   return os.Remove(self.TempDir)
+}
+
+func (self *Library) AddDependencies() error {
+  if self.TempDir == "" {
+    return nil  // do nothing if there's nothing to search
+  }
+
+  // get dependencies via lockfile or grapnelfile
+  if deplist, err := LoadGrapnelDepsfile(
+    path.Join(self.TempDir, "grapnel-lock.toml"),
+    path.Join(self.TempDir, "grapnel.toml")); err != nil {
+    return err
+  } else if deplist != nil {
+    self.Dependencies = append(self.Dependencies, deplist...)
+    return nil
+  }
+
+  // attempt get dependencies via raw import statements instead
+  pkg, err := build.ImportDir(self.TempDir, 0)
+  if err != nil {
+    log.Debug("Failed to get go imports for %v", err)
+    log.Warn("No Go imports to process for %v", self.Import)
+    return nil
+  }
+
+  // add all non std libs as dependencies of this lib
+  for _, importName := range pkg.Imports {
+    if IsStandardDependency(importName) {
+      log.Debug("Ignoring import: %v", importName)
+    } else {
+      log.Warn("Adding secondary import: %v", importName)
+      dep, err := NewDependency(importName, "", "")
+      if err != nil {
+        return err
+      }
+      self.Dependencies = append(self.Dependencies, dep)
+    }
+  }
+  return nil
 }
 
 func (self *Library) ToToml(writer io.Writer) {

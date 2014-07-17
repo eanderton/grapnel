@@ -171,8 +171,9 @@ func ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
       select {
       case lib := <- results:
         log.Debug("Reconciled library: %s", lib.Import)
+        resolved[lib.Import] = lib
         for _, importPath := range lib.Provides {
-          log.Debug("%s provides %s", lib.Import, importPath)
+          log.Debug("Submodule:  %s", importPath)
           resolved[importPath] = lib
         }
         tempQueue = append(tempQueue, lib.Dependencies...)

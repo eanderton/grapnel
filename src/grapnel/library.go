@@ -114,7 +114,6 @@ func (self *Library) AddDependencies() error {
     return err
   } else {
     // fully qualify the set of paths
-    self.Provides = append(self.Provides, self.Import)
     for _, path := range importPaths {
       self.Provides = append(self.Provides, self.Import + "/" + path)
     }

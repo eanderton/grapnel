@@ -48,27 +48,16 @@ emit-config:
 # Also concatenate coverage reports to 'coverage.out'
 go-unittest:
 	@GOPATH='$(PWD)' go test -v \
-		-coverprofile=coverage.tmp \
 		$(TESTPATH) \
 	| sed -e 's#	\(.*\).go:#src/$(TESTPATH)/\1.go:#'
-	@tail -n +2 coverage.tmp >> coverage.out
 
 # General unittests for each package
 unittest:
-	# reset coverage data with a single mode line
-	-rm coverage.out
-	@echo 'mode: set' > coverage.out
 	# run unittests and coverage analysis
 	make go-unittest TESTPATH=grapnel/flag
 	make go-unittest TESTPATH=grapnel/log
 	make go-unittest TESTPATH=grapnel/util
 	make go-unittest TESTPATH=grapnel
-	# generate coverage reports
-	@GOPATH='$(PWD)' go tool cover -func=coverage.out
-
-# Interactive coverage report
-htmlcover: unittest
-	@GOPATH='$(PWD)' go tool cover -html=coverage.out
 
 # Basic command test
 smoketest: grapnel

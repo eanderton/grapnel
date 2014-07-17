@@ -22,6 +22,8 @@ THE SOFTWARE.
 */
 
 import (
+  "os"
+  "path"
   "fmt"
   "strings"
   "net/url"
@@ -30,9 +32,9 @@ import (
   log "grapnel/log"
 )
 
-var (
-  GitIgnorePattern string = `\.git|\.gitignore`
-)
+func stripGitRepo(baseDir string) {
+  os.RemoveAll(path.Join(baseDir,".git"))
+}
 
 func GitResolver(dep *Dependency) (*Library, error) {
   lib := NewLibrary(dep)
@@ -43,6 +45,10 @@ func GitResolver(dep *Dependency) (*Library, error) {
   }
   if lib.Import == "" {
     lib.Import = dep.Url.Host + dep.Url.Path
+    // remove .git suffix for synthesized imports
+    if strings.HasSuffix(lib.Import, ".git") {
+      lib.Import = lib.Import[0:len(lib.Import)-4]
+    }
   }
   if lib.Branch == "" {
     lib.Branch = "master"
@@ -96,16 +102,17 @@ func GitResolver(dep *Dependency) (*Library, error) {
       lib.Tag = strings.TrimSpace(cmd.CombinedOutput)
     }
   }
- 
-  // Stop now if we have no semantic version information 
-  if lib.VersionSpec.IsUnversioned() {
+
+  // Stop now if we have no semantic version information
+  if lib.Parent.VersionSpec.IsUnversioned() {
     lib.Version = NewVersion(-1,-1,-1)
     log.Warn("Resolved: %v (unversioned)", lib.Import)
+    stripGitRepo(lib.TempDir)
     return lib, nil
   }
 
   // find latest version match
-  if err := cmd.Run("git", "for-each-ref", "refs/tags", "--sort=taggerdate", 
+  if err := cmd.Run("git", "for-each-ref", "refs/tags", "--sort=taggerdate",
       "--format=%(refname:short)"); err != nil {
     return nil, fmt.Errorf("Failed to acquire ref list for depenency")
   } else {
@@ -119,21 +126,23 @@ func GitResolver(dep *Dependency) (*Library, error) {
           // move to this tag in the history
           if err := cmd.Run("git","checkout", lib.Tag); err != nil {
             return nil, fmt.Errorf("Failed to checkout tag: '%s'", lib.Tag)
-          }  
-          break 
-        } 
+          }
+          break
+        }
       } else {
         log.Debug("Parse git tag err: %v", err)
       }
     }
   }
 
+
   // fail if the tag cannot be determined.
-  if lib.Version == nil { 
-    return nil, fmt.Errorf("Cannot find a tag for dependency version specification: %v.", lib.Dependency.VersionSpec)
+  if lib.Version == nil {
+    return nil, fmt.Errorf("Cannot find a tag for dependency version specification: %v.", lib.Parent.VersionSpec)
   }
 
   log.Info("Resolved: %s %v", lib.Import, lib.Version)
+  stripGitRepo(lib.TempDir)
   return lib, nil
 }
 

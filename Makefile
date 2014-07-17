@@ -34,6 +34,7 @@ all: unittest smoketest
 clean:
 	-rm -f grapnel
 	-rm -rf $(TESTTARGET)
+	-rm -f coverage.tmp coverage.out 
 
 # Generates configuration out of data in this Makefile 
 emit-config:
@@ -44,17 +45,30 @@ emit-config:
 
 # Normalize 'go test' output to align with 'go build'
 # NOTE: this is a tremendous help for vim's 'quickfix' feature
+# Also concatenate coverage reports to 'coverage.out'
 go-unittest:
-	@GOPATH='$(PWD)' go test -v $(TESTPATH) \
+	@GOPATH='$(PWD)' go test -v \
+		-coverprofile=coverage.tmp \
+		$(TESTPATH) \
 	| sed -e 's#	\(.*\).go:#src/$(TESTPATH)/\1.go:#'
+	@tail -n +2 coverage.tmp >> coverage.out
 
 # General unittests for each package
 unittest:
-	make go-unittest TESTPATH=github.com/pelletier/go-toml
+	# reset coverage data with a single mode line
+	-rm coverage.out
+	@echo 'mode: set' > coverage.out
+	# run unittests and coverage analysis
 	make go-unittest TESTPATH=grapnel/flag
 	make go-unittest TESTPATH=grapnel/log
 	make go-unittest TESTPATH=grapnel/util
 	make go-unittest TESTPATH=grapnel
+	# generate coverage reports
+	@GOPATH='$(PWD)' go tool cover -func=coverage.out
+
+# Interactive coverage report
+htmlcover: unittest
+	@GOPATH='$(PWD)' go tool cover -html=coverage.out
 
 # Basic command test
 smoketest: grapnel
@@ -65,4 +79,4 @@ grapnel: $(GOFILES)
 	make emit-config
 	GOPATH='$(PWD)' go build -o grapnel grapnel/cmd 
 
-.PHONY: all clean emit-config go-unittest smoketest unittest
+.PHONY: all clean emit-config go-unittest smoketest unittest htmlcover

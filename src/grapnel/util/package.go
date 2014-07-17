@@ -1,4 +1,4 @@
-package grapnel
+package util
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
 
@@ -26,7 +26,6 @@ import (
   "fmt"
   "os/exec"
   "path/filepath"
-  "regexp"
   so "grapnel/stackoverflow"
   log "grapnel/log"
 )
@@ -72,23 +71,7 @@ func (self *RunContext) MustRun(cmd string, args... string) {
 }
 
 // Copies a file tree from src to dest
-func CopyFileTree(dest string, src string, ignore string) error {
-  // create a callback for filtering
-  var ignoreFn func(name string) bool
-  if ignore == "" {
-    ignoreFn = func(string) bool {
-      return false
-    }
-  } else {
-    if ignoreRegex, err := regexp.Compile(ignore); err != nil {
-      return fmt.Errorf("Failed to compile ignore regex")
-    } else {
-      ignoreFn = func(name string) bool {
-        return ignoreRegex.MatchString(name)
-      }
-    }
-  }
-
+func CopyFileTree(dest string, src string) error {
   return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
     if err != nil {
       log.Info("%s", err.Error())
@@ -97,10 +80,6 @@ func CopyFileTree(dest string, src string, ignore string) error {
     relativePath, _ := filepath.Rel(src, path)
     destPath := filepath.Join(dest, relativePath)
     if info.IsDir() {
-      // don't process this if the directory is marked as 'skip'
-      if ignoreFn(info.Name()) {
-        return filepath.SkipDir
-      }
       // create target directory if it's not already there
       if !so.Exists(destPath) {
         if err := os.MkdirAll(destPath, 0755); err != nil {
@@ -108,9 +87,6 @@ func CopyFileTree(dest string, src string, ignore string) error {
         }
       }
     } else {
-      if ignoreFn(info.Name()) {
-        return nil  // skip file
-      }
       log.Debug("Copying: %s", destPath)
       if err := so.CopyFileContents(path, destPath); err != nil {
         return fmt.Errorf("Could not copy file '%s' to '%s'", path, destPath)
@@ -118,4 +94,21 @@ func CopyFileTree(dest string, src string, ignore string) error {
     }
     return nil
   })
+}
+
+func GetDirectories(src string) ([]string, error) {
+  results := []string{}
+
+  err := filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+    if err != nil {
+      log.Info("%s", err.Error())
+      return fmt.Errorf("Error while walking file tree")
+    }
+    relativePath, _ := filepath.Rel(src, path)
+    if info.IsDir() && relativePath != "." {
+      results = append(results, relativePath)
+    }
+    return nil
+  })
+  return results, err
 }

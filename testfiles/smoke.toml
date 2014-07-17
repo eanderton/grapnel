@@ -37,3 +37,6 @@ tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"
 
 [[dependencies]]
 import = "github.com/spf13/cobra"
+
+[[dependencies]]
+import = "gopkg.in/inconshreveable/log15.v2"

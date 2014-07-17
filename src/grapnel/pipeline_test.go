@@ -99,7 +99,7 @@ func TestLibResolveDeps(t *testing.T) {
   // create a pre-resolved entry
   dep := testDeps[0]
   resolved[dep.Import] = &Library {
-    Dependency: dep,
+    Parent: dep,
     Version: &Version{1, 0, 0},
   }
   // test resolution

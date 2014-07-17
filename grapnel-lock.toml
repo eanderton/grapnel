@@ -2,26 +2,26 @@
 [[dependencies]]
 # Unversioned
 type = "git"
+import = "github.com/spf13/cobra"
+url = "http://github.com/spf13/cobra"
+branch = "master"
+tag = "864687ae689edc28688c67edef47e3d2ad651a1b"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "gopkg.in/inconshreveable/log15.v2"
+url = "http://gopkg.in/inconshreveable/log15.v2"
+branch = "master"
+tag = "6496dcc0b79933520138fe7ab8bb208877c1e2cd"
+
+[[dependencies]]
+# Unversioned
+type = "git"
 import = "github.com/gorilla/mux"
 url = "http://github.com/gorilla/mux"
 branch = "master"
 tag = "14cafe28513321476c73967a5a4f3454b6129c46"
-
-[[dependencies]]
-# Unversioned
-type = "git"
-import = "github.com/bradfitz/gomemcache"
-url = "http://github.com/bradfitz/gomemcache"
-branch = "master"
-tag = "release.r60"
-
-[[dependencies]]
-# Unversioned
-type = "git"
-import = "github.com/pelletier/go-toml"
-url = "http://github.com/pelletier/go-toml"
-branch = "master"
-tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"
 
 [[dependencies]]
 # Unversioned
@@ -34,18 +34,34 @@ tag = "c53e208f58280c5e9e89d9c6b0c358e5ae412a1a"
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/spf13/cobra"
-url = "http://github.com/spf13/cobra"
+import = "github.com/pelletier/go-toml"
+url = "http://github.com/pelletier/go-toml"
 branch = "master"
-tag = "864687ae689edc28688c67edef47e3d2ad651a1b"
+tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"
 
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/spf13/pflag"
-url = "http://github.com/spf13/pflag"
+import = "gopkg.in/inconshreveable/log15.v2"
+url = "http://gopkg.in/inconshreveable/log15.v2"
 branch = "master"
-tag = "463bdc838f2b35e9307e91d480878bda5fff7232"
+tag = "6496dcc0b79933520138fe7ab8bb208877c1e2cd"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "gopkg.in/inconshreveable/log15.v2"
+url = "http://gopkg.in/inconshreveable/log15.v2"
+branch = "master"
+tag = "6496dcc0b79933520138fe7ab8bb208877c1e2cd"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/bradfitz/gomemcache"
+url = "http://github.com/bradfitz/gomemcache"
+branch = "master"
+tag = "release.r60"
 
 [[dependencies]]
 # Unversioned
@@ -54,3 +70,11 @@ import = "github.com/gorilla/context"
 url = "http://github.com/gorilla/context"
 branch = "master"
 tag = "14f550f51af52180c2eefed15e5fd18d63c0a64a"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/spf13/pflag"
+url = "http://github.com/spf13/pflag"
+branch = "master"
+tag = "463bdc838f2b35e9307e91d480878bda5fff7232"

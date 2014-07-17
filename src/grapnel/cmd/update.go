@@ -30,6 +30,10 @@ import (
   log "grapnel/log"
 )
 
+var (
+  createDsd bool = false
+)
+
 func updateFn(cmd *Command, args []string) error {
   configureLogging()
   configurePipeline()
@@ -97,6 +101,16 @@ func updateFn(cmd *Command, args []string) error {
     lib.ToToml(lockFile)
   }
 
+  if createDsd {
+    log.Info("Writing dsd file")
+ //   dsdFileName := path.Join(path.Dir(lockFileName), "grapnel-dsd.sh")
+    fmt.Printf("#!/bin/bash\n")
+    fmt.Printf("# Grapnel Dead-simple Downloader\n\n")
+/*    for _, lib := range libs {
+      lib.ToDsd(dsdFile)
+    }
+*/  }
+
   log.Info("Update complete")
   return nil
 }
@@ -126,6 +140,11 @@ var updateCmd = Command{
       Desc: "Target installation path",
       ArgDesc: "[target]",
       Fn: StringFlagFn(&targetPath),
+    },
+    "generate-dsd": &Flag {
+      Alias: "g",
+      Desc: "Create a 'dead-simple-downloader' script'",
+      Fn: BoolFlagFn(&createDsd),
     },
   },
   Fn: updateFn,

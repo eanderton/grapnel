@@ -33,14 +33,12 @@ import (
 // resolver types
 type ResolverFn func(*Dependency) (*Library,error)
 type ResolverFnMap map[string]ResolverFn
-type IgnorePatternMap map[string]string
 
 // resolver registration
 var (
   TypeResolvers ResolverFnMap = make(ResolverFnMap)
   UrlSchemeResolvers ResolverFnMap = make(ResolverFnMap)
   UrlHostResolvers ResolverFnMap = make(ResolverFnMap)
-  InstallIgnorePatterns IgnorePatternMap = make(IgnorePatternMap)
 )
 
 func GetResolver(dep *Dependency) ResolverFn {
@@ -172,8 +170,11 @@ func ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
     for ii := 0; ii < len(workQueue); ii++ {
       select {
       case lib := <- results:
-        resolved[lib.Import] = lib
         log.Debug("Reconciled library: %s", lib.Import)
+        for _, importPath := range lib.Provides {
+          log.Debug("%s provides %s", lib.Import, importPath)
+          resolved[importPath] = lib
+        }
         tempQueue = append(tempQueue, lib.Dependencies...)
       case err := <- errors:
         log.Error(err)
@@ -190,11 +191,7 @@ func ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
 
 func InstallLibraries(installRoot string, libs map[string]*Library) error {
   for name, lib := range libs {
-    pattern, ok := InstallIgnorePatterns[lib.Type]
-    if !ok {
-      pattern = ""
-    }
-    if err := lib.Install(installRoot, pattern); err != nil {
+    if err := lib.Install(installRoot); err != nil {
       return fmt.Errorf("While installing %v: %v", name, err)
     }
   }

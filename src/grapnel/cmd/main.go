@@ -61,7 +61,7 @@ func configurePipeline() error {
   TypeResolvers["git"] = GitResolver
   UrlSchemeResolvers["git"] = GitResolver
   UrlHostResolvers["github.com"] = GitResolver
-  InstallIgnorePatterns["git"] = GitIgnorePattern
+  UrlHostResolvers["gopkg.in"] = GitResolver
 
   // TODO: other SCMs
   return nil

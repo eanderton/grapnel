@@ -33,8 +33,9 @@ import (
   log "grapnel/log"
 )
 
+// contains resolved factors from the parent depdendency specification
 type Library struct {
-  *Dependency
+  Parent *Dependency
   Import string
   Url *url.URL
   Type string
@@ -42,6 +43,7 @@ type Library struct {
   Tag string
   *Version
   TempDir string
+  Provides[] string  // imports provided by this library
   Dependencies []*Dependency
 }
 
@@ -61,16 +63,18 @@ func NewLibrary(dep *Dependency) *Library {
   }
 
   return &Library{
-    Dependency: dep,
+    Parent: dep,
     Import: dep.Import,
     Url: newUrl,
     Type: dep.Type,
     Tag: dep.Tag,
+    Branch: dep.Branch,
+    Provides: make([]string, 0),
     Dependencies: make([]*Dependency, 0),
   }
 }
 
-func (self *Library) Install(installRoot string, ignorePattern string) error {
+func (self *Library) Install(installRoot string) error {
   // set up root target dir
   importPath := filepath.Join(installRoot, self.Import)
   if err := os.MkdirAll(importPath, 0755); err != nil {
@@ -79,7 +83,7 @@ func (self *Library) Install(installRoot string, ignorePattern string) error {
   }
 
   // move everything over
-  if err := util.CopyFileTree(importPath, self.TempDir, ignorePattern); err != nil {
+  if err := util.CopyFileTree(importPath, self.TempDir); err != nil {
     log.Info("%s", err.Error())
     return fmt.Errorf("Error while walking dependency file tree")
   }
@@ -103,6 +107,17 @@ func (self *Library) AddDependencies() error {
   } else if deplist != nil {
     self.Dependencies = append(self.Dependencies, deplist...)
     return nil
+  }
+
+  // figure out the provided modules in this library
+  if importPaths, err := util.GetDirectories(self.TempDir); err != nil {
+    return err
+  } else {
+    // fully qualify the set of paths
+    self.Provides = append(self.Provides, self.Import)
+    for _, path := range importPaths {
+      self.Provides = append(self.Provides, self.Import + "/" + path)
+    }
   }
 
   // attempt get dependencies via raw import statements instead
@@ -155,4 +170,8 @@ func (self *Library) ToToml(writer io.Writer) {
     //}
     fmt.Fprintf(writer, "tag = \"%s\"\n", self.Tag)
   }
+}
+
+func (self *Library) ToDsd(writer io.Writer) {
+  //TODO
 }

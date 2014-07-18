@@ -48,7 +48,7 @@ func TestNewDepdendency(t *testing.T) {
     t.Errorf("Bad value for url: '%v'. Expected: '%v'",
         dep.Url.String(), "http://github.com/foo/bar")
   }
-  if dep.Oper != OpGte ||
+  if dep.VersionSpec.Oper != OpGte ||
      dep.VersionSpec.Major != 1 ||
      dep.VersionSpec.Minor != 2 ||
      dep.VersionSpec.Subminor != 3 {

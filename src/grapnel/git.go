@@ -32,11 +32,25 @@ import (
   log "grapnel/log"
 )
 
+type GitSCM struct{}
+
+func (self *GitSCM) Match(dep *Dependency) bool {
+  if dep.Url != nil {
+    if dep.Url.Scheme == "git" {
+      return true
+    }
+    if strings.HasSuffix(dep.Url.Path, ".git") {
+      return true
+    }
+  }
+  return false
+}
+
 func stripGitRepo(baseDir string) {
   os.RemoveAll(path.Join(baseDir,".git"))
 }
 
-func GitResolver(dep *Dependency) (*Library, error) {
+func (self *GitSCM) Resolve(dep *Dependency) (*Library, error) {
   lib := NewLibrary(dep)
 
   // fix the type, import, tag, and default branch
@@ -104,7 +118,7 @@ func GitResolver(dep *Dependency) (*Library, error) {
   }
 
   // Stop now if we have no semantic version information
-  if lib.Parent.VersionSpec.IsUnversioned() {
+  if lib.VersionSpec.IsUnversioned() {
     lib.Version = NewVersion(-1,-1,-1)
     log.Warn("Resolved: %v (unversioned)", lib.Import)
     stripGitRepo(lib.TempDir)
@@ -138,7 +152,7 @@ func GitResolver(dep *Dependency) (*Library, error) {
 
   // fail if the tag cannot be determined.
   if lib.Version == nil {
-    return nil, fmt.Errorf("Cannot find a tag for dependency version specification: %v.", lib.Parent.VersionSpec)
+    return nil, fmt.Errorf("Cannot find a tag for dependency version specification: %v.", lib.VersionSpec)
   }
 
   log.Info("Resolved: %s %v", lib.Import, lib.Version)
@@ -146,5 +160,6 @@ func GitResolver(dep *Dependency) (*Library, error) {
   return lib, nil
 }
 
-
-
+func (self *GitSCM) ToDSD(*Library) string {
+  return ""
+}

@@ -34,7 +34,7 @@ type Dependency struct {
   Type string
   Branch string
   Tag string  // alased to: commit and revision
-  *VersionSpec
+  VersionSpec *VersionSpec
 }
 
 func NewDependency(importStr string, urlStr string, versionStr string) (*Dependency, error) {
@@ -67,6 +67,54 @@ func NewDependency(importStr string, urlStr string, versionStr string) (*Depende
   }
 
   return dep, nil
+}
+
+func (self *Dependency) Get(name string) string {
+  switch name {
+  case "import": return self.Import
+  case "type":   return self.Type
+  case "branch": return self.Branch
+  case "tag":    return self.Tag
+  }
+  if self.Url != nil {
+    switch name {
+    case "scheme": return self.Url.Scheme
+    case "host":   return self.Url.Host
+    case "path":   return self.Url.Path
+    case "url":    return self.Url.String()
+    }
+  }
+  return ""
+}
+
+func (self *Dependency) Set(name string, value string) error {
+  switch name {
+  case "import": self.Import = value
+  case "type":   self.Type = value
+  case "branch": self.Branch = value
+  case "tag":    self.Tag = value
+  case "url":
+    // TODO: provide error context
+    if urlValue, err := url.Parse(value); err != nil {
+      return err
+    } else {
+      self.Url = urlValue
+    }
+  }
+  if self.Url != nil {
+    switch name {
+    case "scheme": self.Url.Scheme = value
+    case "host":   self.Url.Host = value
+    case "path":   self.Url.Path = value
+    }
+  } else {
+    switch name {
+    case "scheme": self.Url = &url.URL{Scheme:value}
+    case "host":   self.Url = &url.URL{Host:value}
+    case "path":   self.Url = &url.URL{Path:value}
+    }
+  }
+  return nil
 }
 
 func (self *Dependency) Reconcile(other *Dependency) (*Dependency, error) {

@@ -26,6 +26,7 @@ import (
   . "grapnel/flag"
   "os"
   "fmt"
+  "regexp"
   log "grapnel/log"
 )
 
@@ -41,6 +42,32 @@ var (
   flagDebug bool
 )
 
+var resolver = Resolver {
+  LibSources: map[string]LibSource {
+    "git": &GitSCM{},
+  },
+  MatchRules: []MatchRule {
+    {"scheme", regexp.MustCompile(`git`), []RewriteRule {
+      {"type", nil, "git"},
+    },},
+    {"path", regexp.MustCompile(`.*\.git`), []RewriteRule {
+      {"type", nil, "git"},
+    },},
+    {"import", regexp.MustCompile(`github.com/.*`), []RewriteRule {
+      {"type", nil, "git"},
+    },},
+    {"host", regexp.MustCompile(`github.com`), []RewriteRule {
+      {"type", nil, "git"},
+    },},
+    {"import", regexp.MustCompile(`gopkg.in/.*`), []RewriteRule {
+      {"type", nil, "git"},
+    },},
+    {"host", regexp.MustCompile(`gopkg.in`), []RewriteRule {
+      {"type", nil, "git"},
+    },},
+  },
+}
+
 func configureLogging() {
   if flagDebug {
     log.SetGlobalLogLevel(log.DEBUG)
@@ -51,20 +78,6 @@ func configureLogging() {
   } else {
     log.SetGlobalLogLevel(log.WARN)
   }
-}
-
-
-func configurePipeline() error {
-  // TODO: configure other details out of config file
-
-  // configure Git
-  TypeResolvers["git"] = GitResolver
-  UrlSchemeResolvers["git"] = GitResolver
-  UrlHostResolvers["github.com"] = GitResolver
-  UrlHostResolvers["gopkg.in"] = GitResolver
-
-  // TODO: other SCMs
-  return nil
 }
 
 func ShowVersion() error {

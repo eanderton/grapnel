@@ -36,7 +36,6 @@ import (
 
 func installFn(cmd *Command, args []string) error {
   configureLogging()
-  configurePipeline()
 
   if len(args) > 0 {
     return fmt.Errorf("Too many arguments for 'install'")
@@ -70,7 +69,7 @@ func installFn(cmd *Command, args []string) error {
   }()
 
   // resolve all the dependencies
-  libs, err = ResolveDependencies(deplist)
+  libs, err = resolver.ResolveDependencies(deplist)
   if err != nil {
     return err
   }

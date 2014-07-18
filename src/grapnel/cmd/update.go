@@ -36,7 +36,6 @@ var (
 
 func updateFn(cmd *Command, args []string) error {
   configureLogging()
-  configurePipeline()
 
   if len(args) > 0 {
     return fmt.Errorf("Too many arguments for 'update'")
@@ -86,7 +85,7 @@ func updateFn(cmd *Command, args []string) error {
   }()
 
   // resolve all the dependencies
-  libs, err = ResolveDependencies(deplist)
+  libs, err = resolver.ResolveDependencies(deplist)
   if err != nil {
     return err
   }
@@ -103,13 +102,11 @@ func updateFn(cmd *Command, args []string) error {
 
   if createDsd {
     log.Info("Writing dsd file")
- //   dsdFileName := path.Join(path.Dir(lockFileName), "grapnel-dsd.sh")
-    fmt.Printf("#!/bin/bash\n")
-    fmt.Printf("# Grapnel Dead-simple Downloader\n\n")
-/*    for _, lib := range libs {
-      lib.ToDsd(dsdFile)
+    dsdFileName := path.Join(path.Dir(lockFileName), "grapnel-dsd.sh")
+    if err := resolver.ToDsd(dsdFileName, libs); err != nil {
+      return err
     }
-*/  }
+  }
 
   log.Info("Update complete")
   return nil

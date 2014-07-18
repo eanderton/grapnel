@@ -28,11 +28,11 @@ import (
   log "grapnel/log"
 )
 
-func TestGitResolver(t *testing.T) {
+func TestGitSource(t *testing.T) {
   InitTestLogging()
-  
+
   // construct a repo
-  basePath := BuildTestGitRepo("gitrepo")  
+  basePath := BuildTestGitRepo("gitrepo")
   defer os.Remove(basePath)
 
   // start a daemon to serve the repo
@@ -52,7 +52,8 @@ func TestGitResolver(t *testing.T) {
   log.Info("version: %v", dep.VersionSpec.String())
 
   // test the resolver
-  if _, err = GitResolver(dep); err != nil {
+  libsrc := &GitSCM{}
+  if _, err = libsrc.Resolve(dep); err != nil {
     t.Error("%v", err)
-  } 
+  }
 }

@@ -24,6 +24,7 @@ THE SOFTWARE.
 import (
   "testing"
   "net/url"
+  "regexp"
   log "grapnel/log"
 )
 
@@ -50,26 +51,47 @@ func getTestPipelineDependencyData() []*Dependency {
   }
 }
 
-func TestResolvers(t *testing.T) {
+type testSCM struct{}
+
+func (self *testSCM) Match(*Dependency) bool {
+  return false
+}
+
+func (self *testSCM) Resolve(dep *Dependency) (*Library, error) {
+  lib := &Library{}
+  lib.Dependency = *dep
+  return lib, nil
+}
+
+func (self *testSCM) ToDSD(*Library) string {
+  return ""
+}
+
+func newTestResolver() *Resolver {
+  return &Resolver {
+    LibSources: map[string]LibSource {
+      "test": &testSCM{},
+    },
+    MatchRules: []MatchRule {
+      {"scheme", regexp.MustCompile(`foo`), []RewriteRule {
+        {"type", nil, "test"},
+      },},
+      {"host", regexp.MustCompile(`foobar\.com`), []RewriteRule {
+        {"type", nil, "test"},
+      },},
+    },
+  }
+}
+
+func TestResolver(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)
 
-  // set up resolvers and resolver tear-down
-  simpleResolver := func(*Dependency) (*Library,error) {
-    return &Library{}, nil
-  }
-  TypeResolvers["test"] = simpleResolver
-  UrlSchemeResolvers["foo"] = simpleResolver
-  UrlHostResolvers["foobar.com"] = simpleResolver
-  defer func(){
-    delete(TypeResolvers, "test")
-    delete(UrlSchemeResolvers, "test")
-    delete(UrlHostResolvers, "test")
-  }()
+  testResolver := newTestResolver()
 
   // test using the test data
   testDeps := getTestPipelineDependencyData()
   for ii, dep := range testDeps {
-    if _, err := Resolve(dep); err != nil {
+    if _, err := testResolver.Resolve(dep); err != nil {
       t.Errorf("Error resolving dependency %v ('%v'): %v",
         ii, dep.Import, err)
     }
@@ -79,9 +101,11 @@ func TestResolvers(t *testing.T) {
 func TestDeduplicateDeps(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)
 
+  testResolver := newTestResolver()
+
   testDeps := getTestPipelineDependencyData()
   testDeps = append(testDeps, testDeps...)
-  results, err := DeduplicateDeps(testDeps)
+  results, err := testResolver.DeduplicateDeps(testDeps)
   if err != nil {
     t.Errorf("%v", err)
   }
@@ -93,17 +117,18 @@ func TestDeduplicateDeps(t *testing.T) {
 func TestLibResolveDeps(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)
 
+  testResolver := newTestResolver()
+
   resolved := make(map[string]*Library)
   testDeps := getTestPipelineDependencyData()
 
   // create a pre-resolved entry
   dep := testDeps[0]
   resolved[dep.Import] = &Library {
-    Parent: dep,
     Version: &Version{1, 0, 0},
   }
   // test resolution
-  if deps, err := LibResolveDeps(resolved, testDeps); err != nil {
+  if deps, err := testResolver.LibResolveDeps(resolved, testDeps); err != nil {
     t.Errorf("%v", err)
   } else if len(deps) != 2 {
     t.Error("Expected 2 deps: got %v instead", len(deps))
@@ -118,24 +143,11 @@ func TestLibResolveDeps(t *testing.T) {
 func TestResolveDependencies(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)
 
-  // set up resolvers and resolver tear-down
-  simpleResolver := func(dep *Dependency) (*Library,error) {
-    return &Library{
-      Import: dep.Import,
-    }, nil
-  }
-  TypeResolvers["test"] = simpleResolver
-  UrlSchemeResolvers["foo"] = simpleResolver
-  UrlHostResolvers["foobar.com"] = simpleResolver
-  defer func(){
-    delete(TypeResolvers, "test")
-    delete(UrlSchemeResolvers, "test")
-    delete(UrlHostResolvers, "test")
-  }()
+  testResolver := newTestResolver()
 
   // test using the test data
   testDeps := getTestPipelineDependencyData()
-  libs,_ := ResolveDependencies(testDeps)
+  libs,_ := testResolver.ResolveDependencies(testDeps)
   if len(libs) != len(testDeps) {
     t.Errorf("Error resolving dependencies. Expected %v entries, got %v instead.",
       len(testDeps), len(libs))

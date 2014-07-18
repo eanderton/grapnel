@@ -22,7 +22,6 @@ THE SOFTWARE.
 */
 
 import (
-  "net/url"
   "path"
   "path/filepath"
   "os"
@@ -35,43 +34,20 @@ import (
 
 // contains resolved factors from the parent depdendency specification
 type Library struct {
-  Parent *Dependency
-  Import string
-  Url *url.URL
-  Type string
-  Branch string
-  Tag string
-  *Version
+  Dependency
+  Version *Version
   TempDir string
   Provides[] string  // imports provided by this library
   Dependencies []*Dependency
 }
 
-// TODO: lift this URL into a clone() operation
 func NewLibrary(dep *Dependency) *Library {
-  var newUrl *url.URL
-  if dep.Url != nil {
-    newUrl = &url.URL {
-      Scheme: dep.Url.Scheme,
-      Opaque: dep.Url.Opaque,
-      User: dep.Url.User,
-      Host: dep.Url.Host,
-      Path: dep.Url.Path,
-      RawQuery: dep.Url.RawQuery,
-      Fragment: dep.Url.Fragment,
-    }
-  }
-
-  return &Library{
-    Parent: dep,
-    Import: dep.Import,
-    Url: newUrl,
-    Type: dep.Type,
-    Tag: dep.Tag,
-    Branch: dep.Branch,
+  result := &Library {
     Provides: make([]string, 0),
     Dependencies: make([]*Dependency, 0),
   }
+  result.Dependency = *dep
+  return result
 }
 
 func (self *Library) Install(installRoot string) error {

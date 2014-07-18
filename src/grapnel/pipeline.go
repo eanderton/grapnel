@@ -23,80 +23,89 @@ THE SOFTWARE.
 
 import (
   "fmt"
-  "strings"
+  "regexp"
   log "grapnel/log"
 )
 
-// TODO: some kind of resolver middleware capability to support
-// host subsitution, URL rewriting, and dependency type manipulation
+type LibSource interface {
+  Match(*Dependency) bool
+  Resolve(*Dependency) (*Library, error)
+  ToDSD(*Library) string
+}
 
-// resolver types
-type ResolverFn func(*Dependency) (*Library,error)
-type ResolverFnMap map[string]ResolverFn
+type RewriteRule struct {
+  Aspect string
+  Expr *regexp.Regexp
+  Replace string
+}
 
-// resolver registration
-var (
-  TypeResolvers ResolverFnMap = make(ResolverFnMap)
-  UrlSchemeResolvers ResolverFnMap = make(ResolverFnMap)
-  UrlHostResolvers ResolverFnMap = make(ResolverFnMap)
-)
+type MatchRule struct {
+  Aspect string
+  Expr *regexp.Regexp
+  RewriteRules []RewriteRule
+}
 
-func GetResolver(dep *Dependency) ResolverFn {
-  // TODO: apply middleware filtering here (?)
+// TODO: add processing state, like resolved libs
+type Resolver struct {
+  LibSources map[string]LibSource
+  MatchRules []MatchRule
+}
 
-  // attempt to resolve by type
-  if fn, ok := TypeResolvers[dep.Type]; ok {
-    return fn
-  }
-
-  if dep.Url != nil {
-    // attempt to resolve by url host
-    if fn, ok := UrlHostResolvers[dep.Url.Host]; ok {
-      return fn
-    }
-
-    // attempt to resolve by url host
-    if fn, ok := UrlSchemeResolvers[dep.Url.Scheme]; ok {
-      return fn
-    }
-  }
-
-  // attempt to resolve by hostpart of import
-  if dep.Import != "" {
-    parts := strings.Split(dep.Import, "/")
-    if len(parts) > 0 {
-      hostPart := parts[0]
-      log.Info("resolving by hostpart: %v", hostPart)
-      if fn, ok := UrlHostResolvers[hostPart]; ok {
-        return fn
+// apply a match rule
+func (self *MatchRule) Apply(dep *Dependency) error {
+  value := dep.Get(self.Aspect)
+  if self.Expr.MatchString(value) {
+    for _, rule := range self.RewriteRules {
+      ruleValue := dep.Get(self.Aspect)
+      // replace the value with regex replace if needed
+      if rule.Expr != nil {
+        ruleValue = rule.Expr.ReplaceAllString(ruleValue, rule.Replace)
+      } else {
+        ruleValue = rule.Replace
+      }
+      if err := dep.Set(rule.Aspect, ruleValue); err != nil {
+        return err
       }
     }
   }
   return nil
 }
 
-func Resolve(dep *Dependency) (*Library, error) {
-  // resolve the library
-  fn := GetResolver(dep)
-  if fn == nil {
-    return nil, fmt.Errorf("Cannot identify resolver for dependency: '%v'", dep.Import)
+// resolve a single dependency
+func (self *Resolver) Resolve(dep *Dependency) (*Library, error) {
+  // apply rewrite rules
+  for _, rule := range self.MatchRules {
+    // TODO: provide error context
+    if err := rule.Apply(dep); err != nil {
+      return nil, err
+    }
   }
 
-  // resolve the dependency
-  lib, err := fn(dep)
-  if err != nil {
-    return nil, err
+  // match by registered type - rewrite rules should have set 'type' by now
+  if source, ok := self.LibSources[dep.Type]; ok {
+    var lib *Library
+    var err error
+
+    // resolve through the LibSource
+    lib, err = source.Resolve(dep)
+    if err != nil {
+      return nil, err
+    }
+
+    // follow up with lib specific touches
+    err = lib.AddDependencies()
+    if err != nil {
+      return nil, err
+    }
+
+    return lib, nil
   }
 
-  // add additional deps from this library
-  if err := lib.AddDependencies(); err != nil {
-    return nil, err
-  }
-  return lib, nil
+  return nil, fmt.Errorf("Cannot identify resolver for dependency: '%v'", dep.Import)
 }
 
 // remove duplicates while preserving dependency order
-func DeduplicateDeps(deps []*Dependency) ([]*Dependency, error) {
+func (self *Resolver) DeduplicateDeps(deps []*Dependency) ([]*Dependency, error) {
   tempQueue := make([]*Dependency, 0)
   for ii, src := range deps {
     jj := ii+1;
@@ -120,11 +129,12 @@ func DeduplicateDeps(deps []*Dependency) ([]*Dependency, error) {
   return tempQueue, nil
 }
 
-func LibResolveDeps(libs map[string]*Library, deps []*Dependency) ([]*Dependency, error) {
+// resolve against libraries that are already provided
+func (self *Resolver) LibResolveDeps(libs map[string]*Library, deps []*Dependency) ([]*Dependency, error) {
   tempQueue := make([]*Dependency, 0)
   for _, dep := range deps {
     if lib, ok := libs[dep.Import]; ok {
-      if !dep.IsSatisfiedBy(lib.Version) {
+      if !dep.VersionSpec.IsSatisfiedBy(lib.Version) {
         return nil, fmt.Errorf("Cannot reconcile '%v'", dep.Import)
       }
     } else {
@@ -134,7 +144,8 @@ func LibResolveDeps(libs map[string]*Library, deps []*Dependency) ([]*Dependency
   return tempQueue, nil
 }
 
-func ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
+// resolve all dependencies against configuration
+func (self *Resolver) ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
   resolved := make(map[string]*Library)
   results := make(chan *Library)
   errors := make(chan error)
@@ -143,19 +154,19 @@ func ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
   for len(workQueue) > 0 {
     // de-duplicate the queue
     var err error
-    if workQueue, err = DeduplicateDeps(workQueue); err != nil {
+    if workQueue, err = self.DeduplicateDeps(workQueue); err != nil {
       return nil, err
     }
 
     // look for already resolved deps that may match
-    if workQueue, err = LibResolveDeps(resolved, workQueue); err != nil {
+    if workQueue, err = self.LibResolveDeps(resolved, workQueue); err != nil {
       return nil, err
     }
 
     // spawn goroutines for each dependency to be resolved
     for _, dep := range workQueue {
       go func(dep *Dependency) {
-        lib, err := Resolve(dep)
+        lib, err := self.Resolve(dep)
         if err != nil {
           errors <- err
         } else {
@@ -190,6 +201,14 @@ func ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
   return resolved, nil
 }
 
+func (self *Resolver) ToDsd(filename string, libs map[string]*Library) error {
+  fmt.Printf("#!/bin/bash\n")
+  fmt.Printf("# Grapnel Dead-simple Downloader\n\n")
+  // TODO: call toDSD on all libs via assigned resolver
+  return nil
+}
+
+// TODO: move to Resolver type
 func InstallLibraries(installRoot string, libs map[string]*Library) error {
   for name, lib := range libs {
     if err := lib.Install(installRoot); err != nil {

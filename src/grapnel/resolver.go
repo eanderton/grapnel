@@ -23,62 +23,38 @@ THE SOFTWARE.
 
 import (
   "fmt"
-  "regexp"
   log "grapnel/log"
 )
 
 type LibSource interface {
-  Match(*Dependency) bool
   Resolve(*Dependency) (*Library, error)
   ToDSD(*Library) string
 }
 
-type RewriteRule struct {
-  Aspect string
-  Expr *regexp.Regexp
-  Replace string
-}
+type LibSourceMap map[string]LibSource
 
-type MatchRule struct {
-  Aspect string
-  Expr *regexp.Regexp
-  RewriteRules []RewriteRule
-}
-
-// TODO: add processing state, like resolved libs
 type Resolver struct {
-  LibSources map[string]LibSource
-  MatchRules []MatchRule
+  LibSources LibSourceMap
+  RewriteRules RewriteRuleArray
 }
 
-// apply a match rule
-func (self *MatchRule) Apply(dep *Dependency) error {
-  value := dep.Get(self.Aspect)
-  if self.Expr.MatchString(value) {
-    for _, rule := range self.RewriteRules {
-      ruleValue := dep.Get(self.Aspect)
-      // replace the value with regex replace if needed
-      if rule.Expr != nil {
-        ruleValue = rule.Expr.ReplaceAllString(ruleValue, rule.Replace)
-      } else {
-        ruleValue = rule.Replace
-      }
-      if err := dep.Set(rule.Aspect, ruleValue); err != nil {
-        return err
-      }
-    }
+func NewResolver() *Resolver {
+  return &Resolver {
+    LibSources: LibSourceMap{},
+    RewriteRules: RewriteRuleArray{},
   }
-  return nil
+}
+
+func (self *Resolver) AddRewriteRules(rules RewriteRuleArray) {
+  self.RewriteRules = append(self.RewriteRules, rules...)
 }
 
 // resolve a single dependency
 func (self *Resolver) Resolve(dep *Dependency) (*Library, error) {
   // apply rewrite rules
-  for _, rule := range self.MatchRules {
-    // TODO: provide error context
-    if err := rule.Apply(dep); err != nil {
-      return nil, err
-    }
+  // TODO: consider preserving original dependency
+  if err := self.RewriteRules.Apply(dep); err != nil {
+    return nil, err
   }
 
   // match by registered type - rewrite rules should have set 'type' by now

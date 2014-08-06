@@ -3,9 +3,9 @@
 # Unversioned
 type = "git"
 import = "gopkg.in/inconshreveable/log15.v2"
-url = "http://gopkg.in/inconshreveable/log15.v2"
-branch = "master"
-tag = "6496dcc0b79933520138fe7ab8bb208877c1e2cd"
+url = "http://github.com/inconshreveable/log15"
+branch = "v2"
+tag = "b082f4ccf0a77fc393b1778b4d94a68635de968f"
 
 [[dependencies]]
 # Unversioned
@@ -18,14 +18,6 @@ tag = "c53e208f58280c5e9e89d9c6b0c358e5ae412a1a"
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/gorilla/mux"
-url = "http://github.com/gorilla/mux"
-branch = "master"
-tag = "14cafe28513321476c73967a5a4f3454b6129c46"
-
-[[dependencies]]
-# Unversioned
-type = "git"
 import = "github.com/spf13/cobra"
 url = "http://github.com/spf13/cobra"
 branch = "master"
@@ -34,26 +26,34 @@ tag = "864687ae689edc28688c67edef47e3d2ad651a1b"
 [[dependencies]]
 # Unversioned
 type = "git"
+import = "github.com/gorilla/mux"
+url = "http://github.com/gorilla/mux"
+branch = "master"
+tag = "14cafe28513321476c73967a5a4f3454b6129c46"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "gopkg.in/inconshreveable/log15.v2"
+url = "http://github.com/inconshreveable/log15"
+branch = "v2"
+tag = "b082f4ccf0a77fc393b1778b4d94a68635de968f"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "gopkg.in/inconshreveable/log15.v2"
+url = "http://github.com/inconshreveable/log15"
+branch = "v2"
+tag = "b082f4ccf0a77fc393b1778b4d94a68635de968f"
+
+[[dependencies]]
+# Unversioned
+type = "git"
 import = "github.com/bradfitz/gomemcache"
 url = "http://github.com/bradfitz/gomemcache"
 branch = "master"
 tag = "release.r60"
-
-[[dependencies]]
-# Unversioned
-type = "git"
-import = "gopkg.in/inconshreveable/log15.v2"
-url = "http://gopkg.in/inconshreveable/log15.v2"
-branch = "master"
-tag = "6496dcc0b79933520138fe7ab8bb208877c1e2cd"
-
-[[dependencies]]
-# Unversioned
-type = "git"
-import = "gopkg.in/inconshreveable/log15.v2"
-url = "http://gopkg.in/inconshreveable/log15.v2"
-branch = "master"
-tag = "6496dcc0b79933520138fe7ab8bb208877c1e2cd"
 
 [[dependencies]]
 # Unversioned

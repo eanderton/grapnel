@@ -139,10 +139,10 @@ var (
   numTok = `(\d+)`
   dotTok = `\.`
   wildNumTok = `(\d+|\*)`
-  parseVersionSpec = regexp.MustCompile("^" + 
-    sp + opsTok + "?" + sp + numTok + 
+  parseVersionSpec = regexp.MustCompile("^" +
+    sp + opsTok + "?" + sp + numTok +
     "(" + sp + dotTok + sp + wildNumTok + ")?" +
-    "(" + sp + dotTok + sp + wildNumTok + ")?" + 
+    "(" + sp + dotTok + sp + wildNumTok + ")?" +
     sp + "$")
   parseVersion = regexp.MustCompile("^" +
     any + numTok +
@@ -203,7 +203,7 @@ func ParseVersion(src string) (*Version, error) {
     subminor = -1
   }
   return NewVersion(major, minor, subminor), nil
-} 
+}
 
 // Returns true if 'other' is more specific and/or more recent than self.
 func (self *VersionSpec) Outranks(other *VersionSpec) bool {

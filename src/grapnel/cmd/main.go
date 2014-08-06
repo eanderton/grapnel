@@ -26,7 +26,6 @@ import (
   . "grapnel/flag"
   "os"
   "fmt"
-  "regexp"
   log "grapnel/log"
 )
 
@@ -42,30 +41,14 @@ var (
   flagDebug bool
 )
 
-var resolver = Resolver {
-  LibSources: map[string]LibSource {
-    "git": &GitSCM{},
-  },
-  MatchRules: []MatchRule {
-    {"scheme", regexp.MustCompile(`git`), []RewriteRule {
-      {"type", nil, "git"},
-    },},
-    {"path", regexp.MustCompile(`.*\.git`), []RewriteRule {
-      {"type", nil, "git"},
-    },},
-    {"import", regexp.MustCompile(`github.com/.*`), []RewriteRule {
-      {"type", nil, "git"},
-    },},
-    {"host", regexp.MustCompile(`github.com`), []RewriteRule {
-      {"type", nil, "git"},
-    },},
-    {"import", regexp.MustCompile(`gopkg.in/.*`), []RewriteRule {
-      {"type", nil, "git"},
-    },},
-    {"host", regexp.MustCompile(`gopkg.in`), []RewriteRule {
-      {"type", nil, "git"},
-    },},
-  },
+func getResolver() *Resolver{
+  resolver := NewResolver()
+  resolver.LibSources["git"] = &GitSCM{}
+
+  //TODO: get rules from config file
+  resolver.AddRewriteRules(BasicRewriteRules)
+  resolver.AddRewriteRules(GitRewriteRules)
+  return resolver
 }
 
 func configureLogging() {

@@ -23,39 +23,11 @@ THE SOFTWARE.
 
 import (
   "testing"
-  "net/url"
-  "regexp"
+  url "grapnel/url"
   log "grapnel/log"
 )
 
-func getTestPipelineDependencyData() []*Dependency {
-  fooUrl,_ := url.Parse("foo://somewhere.com/baz/gorf")
-  foobarUrl,_ := url.Parse("http://foobar.com/baz/gorf")
-
-  return []*Dependency{
-    &Dependency{
-      Import: "dependency1",
-      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
-      Type: "test",
-    },
-    &Dependency{
-      Import: "dependency2",
-      Url: fooUrl,
-      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
-    },
-    &Dependency{
-      Import: "dependency3",
-      Url: foobarUrl,
-      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
-    },
-  }
-}
-
 type testSCM struct{}
-
-func (self *testSCM) Match(*Dependency) bool {
-  return false
-}
 
 func (self *testSCM) Resolve(dep *Dependency) (*Library, error) {
   lib := &Library{}
@@ -67,33 +39,74 @@ func (self *testSCM) ToDSD(*Library) string {
   return ""
 }
 
-func newTestResolver() *Resolver {
-  return &Resolver {
-    LibSources: map[string]LibSource {
-      "test": &testSCM{},
+// test standard rewrite rules
+func TestRewrite(t *testing.T) {
+  rules := RewriteRuleArray{}
+  rules = append(rules, BasicRewriteRules...)
+  rules = append(rules, GitRewriteRules...)
+
+  for _,test := range []struct {
+    Src *Dependency
+    Dst *Dependency
+  } {
+    {
+      Src: &Dependency{
+        Import: "gopkg.in/foo/bar.v3",
+      },
+      Dst: &Dependency{
+        Import: "gopkg.in/foo/bar.v3",
+        Url: url.MustParse("http://github.com/foo/bar"),
+        Branch: "v3",
+        Type: "git",
+
+      },
     },
-    MatchRules: []MatchRule {
-      {"scheme", regexp.MustCompile(`foo`), []RewriteRule {
-        {"type", nil, "test"},
-      },},
-      {"host", regexp.MustCompile(`foobar\.com`), []RewriteRule {
-        {"type", nil, "test"},
-      },},
-    },
+  } {
+    if err := rules.Apply(test.Src); err != nil {
+      t.Errorf("Error during replacement %v; Src: %v", err, test.Src.Flatten())
+    }
+    if !test.Src.Equal(test.Dst) {
+      t.Errorf("Error during replacement Src: %v; Dst: %v",
+        test.Src.Flatten(), test.Dst.Flatten())
+    }
   }
 }
 
 func TestResolver(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)
 
-  testResolver := newTestResolver()
+  // construct a test for a basic resolver for type 'test'
+  resolver := &Resolver {
+    LibSources: map[string]LibSource {
+      "test": &testSCM{},
+    },
+  }
 
-  // test using the test data
-  testDeps := getTestPipelineDependencyData()
-  for ii, dep := range testDeps {
-    if _, err := testResolver.Resolve(dep); err != nil {
-      t.Errorf("Error resolving dependency %v ('%v'): %v",
-        ii, dep.Import, err)
+  // positive tests
+  for ii, dep := range []*Dependency{
+    &Dependency{
+      Import: "dependency1",
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+      Type: "test",
+    },
+    } {
+    if _, err := resolver.Resolve(dep); err != nil {
+      t.Errorf("Error resolving dependency %v: %v", ii, err)
+      t.Log("Dep: ", dep.Flatten())
+    }
+  }
+
+  // negative tests
+  for ii, dep := range []*Dependency{
+    &Dependency{
+      Import: "dependency2",
+      Url: url.MustParse("foo://somewhere.com/baz/gorf"),
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+    },
+    } {
+    if _, err := resolver.Resolve(dep); err == nil {
+      t.Errorf("Error ignoring dependency %v", ii)
+      t.Log("Dep: ", dep.Flatten())
     }
   }
 }
@@ -101,26 +114,78 @@ func TestResolver(t *testing.T) {
 func TestDeduplicateDeps(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)
 
-  testResolver := newTestResolver()
+  // construct a test for a basic resolver for type 'test'
+  resolver := &Resolver {
+    LibSources: map[string]LibSource {
+      "test": &testSCM{},
+    },
+  }
 
-  testDeps := getTestPipelineDependencyData()
+  // dependency set for test
+  testDeps := []*Dependency{
+    &Dependency{
+      Import: "dependency1",
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+      Type: "test",
+    },
+    &Dependency{
+      Import: "dependency2",
+      Url: url.MustParse("foo://somewhere.com/baz/gorf"),
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+    },
+    &Dependency{
+      Import: "dependency3",
+      Url: url.MustParse("http://foobar.com/baz/gorf"),
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+    },
+  }
+  targetLen := len(testDeps)
+
+  // ... duplicated
   testDeps = append(testDeps, testDeps...)
-  results, err := testResolver.DeduplicateDeps(testDeps)
+
+  // positive test
+  results, err := resolver.DeduplicateDeps(testDeps)
   if err != nil {
     t.Errorf("%v", err)
   }
-  if len(results) != 3 {
-    t.Errorf("Expected length of 3; got %v instead", len(testDeps))
+  if len(results) != targetLen {
+    t.Errorf("Expected length of %v; got %v instead", targetLen, len(results))
   }
 }
+
 
 func TestLibResolveDeps(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)
 
-  testResolver := newTestResolver()
+  // construct a test for a basic resolver for type 'test'
+  resolver := &Resolver {
+    LibSources: map[string]LibSource {
+      "test": &testSCM{},
+    },
+  }
 
+  // dependency set for test
+  testDeps := []*Dependency{
+    &Dependency{
+      Import: "dependency1",
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+      Type: "test",
+    },
+    &Dependency{
+      Import: "dependency2",
+      Url: url.MustParse("foo://somewhere.com/baz/gorf"),
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+    },
+    &Dependency{
+      Import: "dependency3",
+      Url: url.MustParse("http://foobar.com/baz/gorf"),
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+    },
+  }
+
+  // target library set
   resolved := make(map[string]*Library)
-  testDeps := getTestPipelineDependencyData()
 
   // create a pre-resolved entry
   dep := testDeps[0]
@@ -128,7 +193,7 @@ func TestLibResolveDeps(t *testing.T) {
     Version: &Version{1, 0, 0},
   }
   // test resolution
-  if deps, err := testResolver.LibResolveDeps(resolved, testDeps); err != nil {
+  if deps, err := resolver.LibResolveDeps(resolved, testDeps); err != nil {
     t.Errorf("%v", err)
   } else if len(deps) != 2 {
     t.Error("Expected 2 deps: got %v instead", len(deps))
@@ -139,18 +204,42 @@ func TestLibResolveDeps(t *testing.T) {
   }
 }
 
-
 func TestResolveDependencies(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)
 
-  testResolver := newTestResolver()
+  // construct a test for a basic resolver for type 'test'
+  resolver := &Resolver {
+    LibSources: map[string]LibSource {
+      "test": &testSCM{},
+    },
+  }
+
+  // dependency set for test
+  testDeps := []*Dependency{
+    &Dependency{
+      Import: "dependency1",
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+      Type: "test",
+    },
+    &Dependency{
+      Import: "dependency2",
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+      Type: "test",
+    },
+    &Dependency{
+      Import: "dependency3",
+      VersionSpec: NewVersionSpec(OpEq, 1, 0, -1),
+      Type: "test",
+    },
+  }
 
   // test using the test data
-  testDeps := getTestPipelineDependencyData()
-  libs,_ := testResolver.ResolveDependencies(testDeps)
+  libs, err := resolver.ResolveDependencies(testDeps)
+  if err != nil {
+    t.Errorf("Error resolving dependencies: %v", err)
+  }
   if len(libs) != len(testDeps) {
     t.Errorf("Error resolving dependencies. Expected %v entries, got %v instead.",
       len(testDeps), len(libs))
   }
 }
-

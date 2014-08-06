@@ -26,25 +26,36 @@ import (
   "path"
   "fmt"
   "strings"
-  "net/url"
+  "regexp"
+  "text/template"
   "io/ioutil"
+  url "grapnel/url"
   util "grapnel/util"
   log "grapnel/log"
 )
 
-type GitSCM struct{}
+var GitRewriteRules = RewriteRuleArray {
+  // rewrite rules for misc git resolvers
+  SimpleRewriteRule("scheme", `git`,           "type", `git`),
+  SimpleRewriteRule("path",   `.*\.git`,       "type", `git`),
+  SimpleRewriteRule("import", `github.com/.*`, "type", `git`),
+  SimpleRewriteRule("host",   `github.com`,    "type", `git`),
 
-func (self *GitSCM) Match(dep *Dependency) bool {
-  if dep.Url != nil {
-    if dep.Url.Scheme == "git" {
-      return true
-    }
-    if strings.HasSuffix(dep.Url.Path, ".git") {
-      return true
-    }
-  }
-  return false
+  // rewrite rules for gopkg.in
+  &RewriteRule{
+    Matches: MatchMap{
+      "host": regexp.MustCompile(`gopkg\.in`),
+    },
+    Replacements: ReplaceMap{
+      "branch": template.Must(RewriteTemplate(`{{replace .path "^.*\\.(.*)$" "$1"}}`)),
+      "path":   template.Must(RewriteTemplate(`{{replace .path "^(.*)\\..*$" "$1"}}`)),
+      "host":   template.Must(RewriteTemplate(`github.com`)),
+      "type":   template.Must(RewriteTemplate(`git`)),
+    },
+  },
 }
+
+type GitSCM struct{}
 
 func stripGitRepo(baseDir string) {
   os.RemoveAll(path.Join(baseDir,".git"))
@@ -53,12 +64,8 @@ func stripGitRepo(baseDir string) {
 func (self *GitSCM) Resolve(dep *Dependency) (*Library, error) {
   lib := NewLibrary(dep)
 
-  // fix the type, import, tag, and default branch
-  if lib.Type == "" {
-    lib.Type = "git"
-  }
-  if lib.Import == "" {
-    lib.Import = dep.Url.Host + dep.Url.Path
+  // fix the import, tag, and default branch
+  if lib.Import != "" {
     // remove .git suffix for synthesized imports
     if strings.HasSuffix(lib.Import, ".git") {
       lib.Import = lib.Import[0:len(lib.Import)-4]

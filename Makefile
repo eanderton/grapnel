@@ -30,6 +30,9 @@ GOFILES := $(shell find src -type f -name *.go)
 # Default target - used by vim quickfix and travis-ci
 all: unittest smoketest
 
+# Target used for quickfix bindings
+quickfix: unittest
+
 # Start over
 clean:
 	-rm -f grapnel
@@ -57,6 +60,7 @@ unittest:
 	make go-unittest TESTPATH=grapnel/flag
 	make go-unittest TESTPATH=grapnel/log
 	make go-unittest TESTPATH=grapnel/util
+	make go-unittest TESTPATH=grapnel/url
 	make go-unittest TESTPATH=grapnel
 
 # Basic command test

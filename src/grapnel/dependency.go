@@ -24,11 +24,12 @@ THE SOFTWARE.
 import (
   so "grapnel/stackoverflow"
   toml "github.com/pelletier/go-toml"
+  url "grapnel/url"
   "fmt"
-  "net/url"
 )
 
 type Dependency struct {
+//TODO: parent dependency for error reporting
   Import string
   Url *url.URL
   Type string
@@ -66,52 +67,70 @@ func NewDependency(importStr string, urlStr string, versionStr string) (*Depende
     }
   }
 
+  // TODO: generate a basic URL from import
+  // TODO: consider allowing no scheme on URLs
+  // TODO: consider requiring at least an import value
+
   return dep, nil
 }
 
-func (self *Dependency) Get(name string) string {
-  switch name {
-  case "import": return self.Import
-  case "type":   return self.Type
-  case "branch": return self.Branch
-  case "tag":    return self.Tag
-  }
+func (self *Dependency) Flatten() map[string]string {
+  results := map[string]string{}
+  results["import"] = self.Import
+  results["type"] =   self.Type
+  results["branch"] = self.Branch
+  results["tag"] =    self.Tag
   if self.Url != nil {
-    switch name {
-    case "scheme": return self.Url.Scheme
-    case "host":   return self.Url.Host
-    case "path":   return self.Url.Path
-    case "url":    return self.Url.String()
-    }
+    results["scheme"] = self.Url.Scheme
+    results["host"] =   self.Url.Host
+    results["port"] =   self.Url.Port
+    results["path"] =   self.Url.Path
+    results["url"] =    self.Url.String()
+  } else {
+    results["scheme"] = ""
+    results["host"] =   ""
+    results["port"] =   ""
+    results["path"] =   ""
+    results["url"] =    ""
   }
-  return ""
+  return results
 }
 
-func (self *Dependency) Set(name string, value string) error {
-  switch name {
-  case "import": self.Import = value
-  case "type":   self.Type = value
-  case "branch": self.Branch = value
-  case "tag":    self.Tag = value
-  case "url":
-    // TODO: provide error context
-    if urlValue, err := url.Parse(value); err != nil {
-      return err
+func (self *Dependency) SetValues(valueMap map[string]string) error {
+  for _, key := range []string{ "import", "type", "branch", "tag",
+      "url", "scheme", "host", "path", "port" } {
+    value, ok := valueMap[key]
+    if !ok {
+      continue  // value not in map
+    }
+
+    // set the value
+    switch key {
+    case "import": self.Import = value
+    case "type":   self.Type = value
+    case "branch": self.Branch = value
+    case "tag":    self.Tag = value
+    case "url":
+      if urlValue, err := url.Parse(value); err != nil {
+        return fmt.Errorf("Error setting dependency url: %v", err)
+      } else {
+        self.Url = urlValue
+      }
+    }
+    if self.Url != nil {
+      switch key {
+      case "scheme": self.Url.Scheme = value
+      case "host":   self.Url.Host = value
+      case "path":   self.Url.Path = value
+      case "port":   self.Url.Port = value
+      }
     } else {
-      self.Url = urlValue
-    }
-  }
-  if self.Url != nil {
-    switch name {
-    case "scheme": self.Url.Scheme = value
-    case "host":   self.Url.Host = value
-    case "path":   self.Url.Path = value
-    }
-  } else {
-    switch name {
-    case "scheme": self.Url = &url.URL{Scheme:value}
-    case "host":   self.Url = &url.URL{Host:value}
-    case "path":   self.Url = &url.URL{Path:value}
+      switch key {
+      case "scheme": self.Url = &url.URL{Scheme:value}
+      case "host":   self.Url = &url.URL{Host:value}
+      case "path":   self.Url = &url.URL{Path:value}
+    case "port":   self.Url = &url.URL{Port:value}
+      }
     }
   }
   return nil
@@ -124,6 +143,21 @@ func (self *Dependency) Reconcile(other *Dependency) (*Dependency, error) {
     return other, nil
   }
   return nil, fmt.Errorf("Cannot reconcile dependencies for '%v'", self.Import)
+}
+
+func (self *Dependency) Equal(other *Dependency) bool {
+  if self.Import == other.Import &&
+    self.Type == other.Type &&
+    self.Branch == other.Branch &&
+    self.Tag == other.Tag &&
+    self.VersionSpec == other.VersionSpec {
+    if self.Url != nil && other.Url != nil {
+      return self.Url.Equal(other.Url)
+    } else {
+      return self.Url == nil && other.Url == nil
+    }
+  }
+  return false
 }
 
 func NewDependencyFromToml(tree *toml.TomlTree) (*Dependency, error) {

@@ -24,7 +24,6 @@ THE SOFTWARE.
 import (
   . "grapnel"
   . "grapnel/flag"
-  "path"
   "os"
   "fmt"
   log "grapnel/log"
@@ -32,7 +31,6 @@ import (
 
 // TODO: if no lock file can be found, then fail over to update instead
 // TODO: move lock file writing to updateFn()
-// TODO: prefer grapnel-lock.toml over grapnel.toml here
 
 func installFn(cmd *Command, args []string) error {
   configureLogging()
@@ -41,10 +39,16 @@ func installFn(cmd *Command, args []string) error {
     return fmt.Errorf("Too many arguments for 'install'")
   }
 
-  // compose a new lock file path out of the old package path
+  // set unset paramters to the defaults
   if lockFileName == "" {
-    lockFileName = path.Join(path.Dir(packageFileName), "grapnel-lock.toml")
+    lockFileName = defaultLockFileName
   }
+  if targetPath == "" {
+    targetPath = defaultTargetPath
+  }
+
+  log.Debug("lock file: %v", lockFileName)
+  log.Debug("target path: %v", targetPath)
 
   // get dependencies from the lockfile
   deplist, err := LoadGrapnelDepsfile(lockFileName)
@@ -54,6 +58,7 @@ func installFn(cmd *Command, args []string) error {
     // TODO: fail over to update instead?
     return fmt.Errorf("Cannot open lock file: '%s'", lockFileName)
   }
+  log.Info("loaded %d dependency definitions", len(deplist))
 
   log.Info("installing to: %v", targetPath)
   if err := os.MkdirAll(targetPath, 0755); err != nil {
@@ -87,8 +92,8 @@ var installCmd = Command{
   Desc: "Ensure that locked dependencies are installed and ready for use.",
   Help: " Installs packages at 'targetPath', from configured lock file.\n" +
     "\nDefaults:\n" +
-    "  Lock file = " + lockFileName + "\n" +
-    "  Target path = " + targetPath + "\n",
+    "  Lock file = " + defaultLockFileName + "\n" +
+    "  Target path = " + defaultTargetPath + "\n",
   Flags: FlagMap {
     "lockfile": &Flag {
       Alias: "l",

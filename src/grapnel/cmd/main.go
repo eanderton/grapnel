@@ -31,10 +31,17 @@ import (
 
 // application configurables w/default settings
 var (
-  configFileName string = "/etc/grapnel-config.toml"
-  packageFileName string = "./grapnel.toml"
-  lockFileName string = "./grapnel-lock.toml"
-  targetPath string = "./src"
+  defaultConfigFileName string = "/etc/grapnel-config.toml"
+  configFileName string
+
+  defaultPackageFileName string = "./grapnel.toml"
+  packageFileName string
+
+  defaultLockFileName string = "./grapnel-lock.toml"
+  lockFileName string
+
+  defaultTargetPath string = "./src"
+  targetPath string
 
   flagQuiet bool
   flagVerbose bool
@@ -112,9 +119,9 @@ func main() {
   log.SetFlags(0)
   rootCmd.Help =
     fmt.Sprintf("Defaults:\n") +
-    fmt.Sprintf("  Config file = %s\n", configFileName) +
-    fmt.Sprintf("  Lock file = %s\n", lockFileName) +
-    fmt.Sprintf("  Package file = %s\n", packageFileName) +
+    fmt.Sprintf("  Config file = %s\n", defaultConfigFileName) +
+    fmt.Sprintf("  Lock file = %s\n", defaultLockFileName) +
+    fmt.Sprintf("  Package file = %s\n", defaultPackageFileName) +
     "\n" + rootCmd.Help
   if err := rootCmd.Execute(os.Args...); err != nil {
     log.Error(err)

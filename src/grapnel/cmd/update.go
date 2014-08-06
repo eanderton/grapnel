@@ -41,10 +41,24 @@ func updateFn(cmd *Command, args []string) error {
     return fmt.Errorf("Too many arguments for 'update'")
   }
 
-  // compose a new grapnel file path out of the old package path
+  // set unset paramters to the defaults
   if packageFileName == "" {
-    packageFileName = path.Join(path.Dir(packageFileName), "grapnel.toml")
+    packageFileName = defaultPackageFileName
+    if lockFileName == "" {
+      // set to default iff there was no package filename set
+      lockFileName = defaultLockFileName
+    }
+  } else if lockFileName == "" {
+    // compose a new lock file path out of the old package path
+    lockFileName = path.Join(path.Dir(packageFileName), "grapnel-lock.toml")
   }
+  if targetPath == "" {
+    targetPath = defaultTargetPath
+  }
+
+  log.Debug("package file: %v", packageFileName)
+  log.Debug("lock file: %v", lockFileName)
+  log.Debug("target path: %v", targetPath)
 
   // get dependencies from the grapnel file
   log.Info("loading package file: '%s'", packageFileName)
@@ -55,13 +69,7 @@ func updateFn(cmd *Command, args []string) error {
     // TODO: fail over to update instead?
     return fmt.Errorf("Cannot open grapnel file: '%s'", packageFileName)
   }
-
-  log.Info("loaded %d deps", len(deplist))
-
-  // compose a new lock file path out of the old package path
-  if lockFileName == "" {
-    lockFileName = path.Join(path.Dir(packageFileName), "grapnel-lock.toml")
-  }
+  log.Info("loaded %d dependency definitions", len(deplist))
 
   // open it now before we expend any real effort
   lockFile, err := os.Create(lockFileName)
@@ -117,9 +125,9 @@ var updateCmd = Command{
   Desc: "Ensure that the latest dependencies are installed and ready for use.",
   Help: " Installs packages at 'targetPath', from configured package file.\n" +
     "\nDefaults:\n" +
-    "  Package file = " + packageFileName + "\n" +
-    "  Lock file = " + lockFileName + "\n" +
-    "  Target path = " + targetPath + "\n",
+    "  Package file = " + defaultPackageFileName + "\n" +
+    "  Lock file = " + defaultLockFileName + "\n" +
+    "  Target path = " + defaultTargetPath + "\n",
   Flags: FlagMap {
     "pconfig": &Flag {
       Alias: "p",

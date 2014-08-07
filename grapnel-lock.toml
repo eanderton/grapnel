@@ -1,0 +1,8 @@
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/pelletier/go-toml"
+url = "http://github.com/eanderton/go-toml"
+branch = "master"
+tag = "aa194b5c41c1c2a5272df31044b5800051ecd34b"

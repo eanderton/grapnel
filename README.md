@@ -69,7 +69,7 @@ In all of these cases, 'go get's default behavior is to get the tip of the
 repository.  This means that your project may be composed of unstable code the
 instant 'go get' is done with its installation pass.
 
-A bigger problem is that the process is not repatable, because there's no way
+A bigger problem is that the process is not repeatable, because there's no way
 to inform go of specifically which version, branch, tag, or commit to install.
 
 This would encourage developers to manually resolve the issue in any number 
@@ -97,4 +97,4 @@ Grapnel will eventually cover support for Subversion, Mercurial, and Bazaar.
 
 Support for web proxies, local repository mirrors, artifactories, recursive
 dependency reconciliation, are all planned.  Please be patient while we
-add the features you're wating for.
+add the features you're waiting for.

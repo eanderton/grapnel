@@ -121,8 +121,9 @@ func (self *Resolver) LibResolveDeps(libs map[string]*Library, deps []*Dependenc
 }
 
 // resolve all dependencies against configuration
-func (self *Resolver) ResolveDependencies(deps []*Dependency) (map[string]*Library, error) {
-  resolved := make(map[string]*Library)
+func (self *Resolver) ResolveDependencies(deps []*Dependency) ([]*Library, error) {
+  masterLibs := []*Library{}
+  resolved := map[string]*Library{}
   results := make(chan *Library)
   errors := make(chan error)
   workQueue := deps
@@ -159,6 +160,7 @@ func (self *Resolver) ResolveDependencies(deps []*Dependency) (map[string]*Libra
       case lib := <- results:
         log.Debug("Reconciled library: %s", lib.Import)
         resolved[lib.Import] = lib
+        masterLibs = append(masterLibs, lib)
         for _, importPath := range lib.Provides {
           log.Debug("Submodule:  %s", importPath)
           resolved[importPath] = lib
@@ -174,21 +176,20 @@ func (self *Resolver) ResolveDependencies(deps []*Dependency) (map[string]*Libra
     }
     workQueue = tempQueue
   }
-  return resolved, nil
+  return masterLibs, nil
 }
 
-func (self *Resolver) ToDsd(filename string, libs map[string]*Library) error {
+func (self *Resolver) ToDsd(filename string, libs []*Library) error {
   fmt.Printf("#!/bin/bash\n")
   fmt.Printf("# Grapnel Dead-simple Downloader\n\n")
   // TODO: call toDSD on all libs via assigned resolver
   return nil
 }
 
-// TODO: move to Resolver type
-func InstallLibraries(installRoot string, libs map[string]*Library) error {
-  for name, lib := range libs {
+func (self *Resolver) InstallLibraries(installRoot string, libs []*Library) error {
+  for _, lib := range libs {
     if err := lib.Install(installRoot); err != nil {
-      return fmt.Errorf("While installing %v: %v", name, err)
+      return fmt.Errorf("While installing %v: %v", lib.Import, err)
     }
   }
   return nil

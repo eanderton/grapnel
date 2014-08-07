@@ -84,7 +84,7 @@ func updateFn(cmd *Command, args []string) error {
     return err
   }
 
-  var libs map [string]*Library
+  libs := []*Library{}
   // cleanup
   defer func() {
     for _, lib := range libs {
@@ -101,7 +101,7 @@ func updateFn(cmd *Command, args []string) error {
 
   // install all the dependencies
   log.Info("Resolved %v dependencies. Installing.", len(libs))
-  InstallLibraries(targetPath, libs)
+  resolver.InstallLibraries(targetPath, libs)
 
   // write the library data out
   log.Info("Writing lock file")

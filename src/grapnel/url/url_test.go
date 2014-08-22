@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Brought into Grapnel and modified by Eric Anderton - 2014
-package grapnel
+package url
 
 import (
 	"fmt"

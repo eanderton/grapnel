@@ -74,7 +74,10 @@ func installFn(cmd *Command, args []string) error {
   }()
 
   // resolve all the dependencies
-  resolver := getResolver()
+  resolver, err := getResolver()
+  if err != nil {
+    return err
+  }
   libs, err = resolver.ResolveDependencies(deplist)
   if err != nil {
     return err

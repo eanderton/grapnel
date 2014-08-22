@@ -182,7 +182,7 @@ func NewDependencyFromToml(tree *toml.TomlTree) (*Dependency, error) {
 func loadDependencies(filename string) ([]*Dependency, error) {
   tree, err := toml.LoadFile(filename)
   if err != nil {
-    return nil, err
+    return nil, fmt.Errorf("%s %s", filename, err)
   }
 
   items := tree.Get("dependencies").([]*toml.TomlTree)

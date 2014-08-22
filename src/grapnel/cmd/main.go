@@ -26,12 +26,18 @@ import (
   . "grapnel/flag"
   "os"
   "fmt"
+  "strings"
+  so "grapnel/stackoverflow"
   log "grapnel/log"
 )
 
 // application configurables w/default settings
 var (
-  defaultConfigFileName string = "/etc/grapnel-config.toml"
+  configFilePath []string = []string{
+    "/etc/.grapnelrc",
+    "~/.grapnelrc",
+    "./.grapnelrc",
+  }
   configFileName string
 
   defaultPackageFileName string = "./grapnel.toml"
@@ -48,14 +54,46 @@ var (
   flagDebug bool
 )
 
-func getResolver() *Resolver{
+func getResolver() (*Resolver, error) {
   resolver := NewResolver()
   resolver.LibSources["git"] = &GitSCM{}
 
-  //TODO: get rules from config file
   resolver.AddRewriteRules(BasicRewriteRules)
   resolver.AddRewriteRules(GitRewriteRules)
-  return resolver
+
+  // find/validate configuration file
+  if configFileName != "" {
+    if !so.Exists(configFileName) {
+      return nil, fmt.Errorf("could not locate config file: %s", configFileName)
+    }
+  } else {
+    // search in standard locations
+    for _, item := range configFilePath {
+      path, err := so.AbsolutePath(item)
+      if err != nil {
+        return nil, err
+      }
+      if so.Exists(path) {
+        configFileName = path
+        break
+      }
+    }
+    // warn and exit here if we can't locate on the search path
+    if configFileName == "" {
+      log.Warn("Could not locate .grapnelrc file")
+      return resolver, nil
+    }
+  }
+
+  // load the rules from the config file
+  log.Debug("Loading %s", configFileName)
+  if rules, err := LoadRewriteRules(configFileName); err != nil {
+    return nil, err
+  } else {
+    resolver.AddRewriteRules(rules)
+  }
+
+  return resolver, nil
 }
 
 func configureLogging() {
@@ -119,10 +157,10 @@ func main() {
   log.SetFlags(0)
   rootCmd.Help =
     fmt.Sprintf("Defaults:\n") +
-    fmt.Sprintf("  Config file = %s\n", defaultConfigFileName) +
     fmt.Sprintf("  Lock file = %s\n", defaultLockFileName) +
     fmt.Sprintf("  Package file = %s\n", defaultPackageFileName) +
-    "\n" + rootCmd.Help
+    fmt.Sprintf("  Config file path = %s\n", strings.Join(configFilePath, ", ") +
+        "\n" + rootCmd.Help)
   if err := rootCmd.Execute(os.Args...); err != nil {
     log.Error(err)
     rootCmd.ShowHelp(os.Args[0])

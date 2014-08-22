@@ -39,39 +39,6 @@ func (self *testSCM) ToDSD(*Library) string {
   return ""
 }
 
-// test standard rewrite rules
-func TestRewrite(t *testing.T) {
-  rules := RewriteRuleArray{}
-  rules = append(rules, BasicRewriteRules...)
-  rules = append(rules, GitRewriteRules...)
-
-  for _,test := range []struct {
-    Src *Dependency
-    Dst *Dependency
-  } {
-    {
-      Src: &Dependency{
-        Import: "gopkg.in/foo/bar.v3",
-      },
-      Dst: &Dependency{
-        Import: "gopkg.in/foo/bar.v3",
-        Url: url.MustParse("http://github.com/foo/bar"),
-        Branch: "v3",
-        Type: "git",
-
-      },
-    },
-  } {
-    if err := rules.Apply(test.Src); err != nil {
-      t.Errorf("Error during replacement %v; Src: %v", err, test.Src.Flatten())
-    }
-    if !test.Src.Equal(test.Dst) {
-      t.Errorf("Error during replacement Src: %v; Dst: %v",
-        test.Src.Flatten(), test.Dst.Flatten())
-    }
-  }
-}
-
 func TestResolver(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)
 

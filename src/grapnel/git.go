@@ -64,13 +64,7 @@ func stripGitRepo(baseDir string) {
 func (self *GitSCM) Resolve(dep *Dependency) (*Library, error) {
   lib := NewLibrary(dep)
 
-  // fix the import, tag, and default branch
-  if lib.Import != "" {
-    // remove .git suffix for synthesized imports
-    if strings.HasSuffix(lib.Import, ".git") {
-      lib.Import = lib.Import[0:len(lib.Import)-4]
-    }
-  }
+  // fix the tag, and default branch
   if lib.Branch == "" {
     lib.Branch = "master"
   }

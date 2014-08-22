@@ -27,11 +27,14 @@ PWD := $(shell pwd)
 # Quick-and-dirty dependency trigger - recompile only if a .go file changes
 GOFILES := $(shell find src -type f -name *.go)
 
-# Default target - used by vim quickfix and travis-ci
+# 'go' wrapper that sets environment for each invocation
+GO := @GOPATH='$(PWD)' go
+
+# Default target - used by travis-ci
 all: unittest smoketest
 
-# Target used for quickfix bindings
-quickfix: unittest
+# Target used for custom vim quickfix bindings
+quickfix: unittest grapnel
 
 # Start over
 clean:
@@ -50,8 +53,7 @@ emit-config:
 # NOTE: this is a tremendous help for vim's 'quickfix' feature
 # Also concatenate coverage reports to 'coverage.out'
 go-unittest:
-	@GOPATH='$(PWD)' go test -v \
-		$(TESTPATH) \
+	$(GO) test -v $(TESTPATH) \
 	| sed -e 's#	\(.*\).go:#src/$(TESTPATH)/\1.go:#'
 
 # General unittests for each package
@@ -70,6 +72,6 @@ smoketest: grapnel
 # Target command to build
 grapnel: $(GOFILES)
 	make emit-config
-	GOPATH='$(PWD)' go build -o grapnel grapnel/cmd 
+	$(GO) build -o grapnel grapnel/cmd 
 
 .PHONY: all clean emit-config go-unittest smoketest unittest htmlcover

@@ -1,3 +1,5 @@
+// Testing support for go-toml
+
 package toml
 
 import (

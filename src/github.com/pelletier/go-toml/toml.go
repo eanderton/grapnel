@@ -144,7 +144,7 @@ func (t *TomlTree) SetPath(keys []string, value interface{}) {
 // and tree[a][b][c]
 //
 // Returns nil on success, error object on failure
-func (t *TomlTree) createSubTree(key string) error{
+func (t *TomlTree) createSubTree(key string) error {
 	subtree := t
 	for _, intermediate_key := range strings.Split(key, ".") {
 		if intermediate_key == "" {
@@ -155,9 +155,17 @@ func (t *TomlTree) createSubTree(key string) error{
 			var new_tree TomlTree = make(TomlTree)
 			(*subtree)[intermediate_key] = &new_tree
 		}
-		subtree = ((*subtree)[intermediate_key]).(*TomlTree)
+
+		switch node := (*subtree)[intermediate_key].(type) {
+		case []*TomlTree:
+			subtree = node[len(node)-1]
+		case *TomlTree:
+			subtree = node
+		default:
+			return fmt.Errorf("unknown type for path %s", key)
+		}
 	}
-  return nil
+	return nil
 }
 
 // encodes a string to a TOML-compliant string value
@@ -223,7 +231,7 @@ func toTomlValue(item interface{}, indent int) string {
 
 // Recursive support function for ToString()
 // Outputs a tree, using the provided keyspace to prefix group names
-func (t *TomlTree) toToml(keyspace string) string {
+func (t *TomlTree) toToml(indent,keyspace string) string {
 	result := ""
 	for k, v := range (map[string]interface{})(*t) {
 		// figure out the keyspace
@@ -236,17 +244,17 @@ func (t *TomlTree) toToml(keyspace string) string {
 		case []*TomlTree:
 			for _, item := range node {
 				if len(item.Keys()) > 0 {
-					result += fmt.Sprintf("\n[[%s]]\n", combined_key)
+					result += fmt.Sprintf("\n%s[[%s]]\n", indent, combined_key)
 				}
-				result += item.toToml(combined_key)
+				result += item.toToml(indent + "  ", combined_key)
 			}
 		case *TomlTree:
 			if len(node.Keys()) > 0 {
-				result += fmt.Sprintf("\n[%s]\n", combined_key)
+				result += fmt.Sprintf("\n%s[%s]\n", indent, combined_key)
 			}
-			result += node.toToml(combined_key)
+			result += node.toToml(indent + "  ", combined_key)
 		default:
-			result += fmt.Sprintf("%s = %s\n", k, toTomlValue(node, 0))
+			result += fmt.Sprintf("%s%s = %s\n", indent, k, toTomlValue(node, 0))
 		}
 	}
 	return result
@@ -255,7 +263,7 @@ func (t *TomlTree) toToml(keyspace string) string {
 // Generates a human-readable representation of the current tree.
 // Output spans multiple lines, and is suitable for ingest by a TOML parser
 func (t *TomlTree) ToString() string {
-	return t.toToml("")
+	return t.toToml("","")
 }
 
 // Create a TomlTree from a string.
@@ -269,7 +277,7 @@ func Load(content string) (tree *TomlTree, err error) {
 		}
 	}()
 	_, flow := lex(content)
-	tree = parse(flow)
+	tree = parse(flow).tree
 	return
 }
 

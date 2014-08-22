@@ -6,7 +6,15 @@
 // See RFC 3986.
 
 // Brought into Grapnel and modified by Eric Anderton - 2014
-package grapnel
+package url
+
+/*
+  Changes from the stock net/url library:
+
+  * Added Port field to URL
+  * Added MustParse() to ease test-table building and Q&D URL parsing
+  * Added URL.Equal() for comparison of URL values
+*/
 
 import (
 	"bytes"

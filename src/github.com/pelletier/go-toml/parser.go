@@ -16,13 +16,14 @@ type parser struct {
 	tokensBuffer  []token
 	currentGroup  []string
 	seenGroupKeys []string
+	positions     *PositionMap
 }
 
 type parserStateFn func(*parser) parserStateFn
 
 // Formats and panics an error message based on a token
-func (p *parser) raiseError(tok *token, msg string, args... interface{}) {
-  panic(tok.Pos() + ": " + fmt.Sprintf(msg, args...))
+func (p *parser) raiseError(tok *token, msg string, args ...interface{}) {
+	panic(tok.Position.String() + ": " + fmt.Sprintf(msg, args...))
 }
 
 func (p *parser) run() {
@@ -70,6 +71,9 @@ func (p *parser) getToken() *token {
 func parseStart(p *parser) parserStateFn {
 	tok := p.peek()
 
+	// prime position data with root tree instance
+	p.positions.SetTree(p.tree, tok.Position)
+
 	// end of stream, parsing is finished
 	if tok == nil {
 		return nil
@@ -91,7 +95,7 @@ func parseStart(p *parser) parserStateFn {
 }
 
 func parseGroupArray(p *parser) parserStateFn {
-	p.getToken() // discard the [[
+	start_token := p.getToken() // discard the [[
 	key := p.getToken()
 	if key.typ != tokenKeyGroupArray {
 		p.raiseError(key, "unexpected token %s, was expecting a key group array", key)
@@ -114,16 +118,32 @@ func parseGroupArray(p *parser) parserStateFn {
 	array = append(array, &new_tree)
 	p.tree.SetPath(p.currentGroup, array)
 
-	// keep this key name from use by other kinds of assignments
-	p.seenGroupKeys = append(p.seenGroupKeys, key.val)
+  // remove all keys that were children of this group array
+  prefix := key.val + "."
+  found := false
+  for ii := 0; ii < len(p.seenGroupKeys); {
+    groupKey := p.seenGroupKeys[ii]
+    if strings.HasPrefix(groupKey, prefix) {
+      p.seenGroupKeys = append(p.seenGroupKeys[:ii], p.seenGroupKeys[ii+1:]...)
+    } else {
+      found = (groupKey == key.val)
+      ii++
+    }
+  }
+
+  // keep this key name from use by other kinds of assignments
+	if !found {
+    p.seenGroupKeys = append(p.seenGroupKeys, key.val)
+  }
 
 	// move to next parser state
 	p.assume(tokenDoubleRightBracket)
+	p.positions.SetTree(&new_tree, start_token.Position)
 	return parseStart(p)
 }
 
 func parseGroup(p *parser) parserStateFn {
-	p.getToken() // discard the [
+	start_token := p.getToken() // discard the [
 	key := p.getToken()
 	if key.typ != tokenKeyGroup {
 		p.raiseError(key, "unexpected token %s, was expecting a key group", key)
@@ -133,12 +153,15 @@ func parseGroup(p *parser) parserStateFn {
 			p.raiseError(key, "duplicated tables")
 		}
 	}
-	p.seenGroupKeys = append(p.seenGroupKeys, key.val)
+
+  p.seenGroupKeys = append(p.seenGroupKeys, key.val)
 	if err := p.tree.createSubTree(key.val); err != nil {
-    p.raiseError(key, "%s", err)
-  }
+		p.raiseError(key, "%s", err)
+	}
 	p.assume(tokenRightBracket)
 	p.currentGroup = strings.Split(key.val, ".")
+	target_tree := p.tree.GetPath(p.currentGroup).(*TomlTree)
+	p.positions.SetTree(target_tree, start_token.Position)
 	return parseStart(p)
 }
 
@@ -171,6 +194,7 @@ func parseAssign(p *parser) parserStateFn {
 		p.raiseError(key, "the following key was defined twice: %s", strings.Join(final_key, "."))
 	}
 	target_node.SetPath(local_key, value)
+	p.positions.SetKey(target_node, key.val, key.Position)
 	return parseStart(p)
 }
 
@@ -211,7 +235,7 @@ func parseRvalue(p *parser) interface{} {
 		p.raiseError(tok, "%s", tok)
 	}
 
-  p.raiseError(tok, "never reached")
+	p.raiseError(tok, "never reached")
 
 	return nil
 }
@@ -250,7 +274,7 @@ func parseArray(p *parser) []interface{} {
 	return array
 }
 
-func parse(flow chan token) *TomlTree {
+func parse(flow chan token) *parser {
 	result := make(TomlTree)
 	parser := &parser{
 		flow:          flow,
@@ -258,7 +282,8 @@ func parse(flow chan token) *TomlTree {
 		tokensBuffer:  make([]token, 0),
 		currentGroup:  make([]string, 0),
 		seenGroupKeys: make([]string, 0),
+		positions:     NewPositionMap(),
 	}
 	parser.run()
-	return parser.tree
+	return parser
 }

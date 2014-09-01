@@ -45,10 +45,39 @@ const (
 	tokenEOL
 )
 
+var tokenTypeNames []string = []string{
+	"EOF",
+	"Comment",
+	"Key",
+	"=",
+	"\"",
+	"Integer",
+	"True",
+	"False",
+	"Float",
+	"[",
+	"[",
+	"]]",
+	"[[",
+	"Date",
+	"KeyGroup",
+	"KeyGroupArray",
+	",",
+	"EOL",
+}
+
 type token struct {
 	Position
 	typ tokenType
 	val string
+}
+
+func (tt tokenType) String() string {
+	idx := int(tt)
+	if idx < len(tokenTypeNames) {
+		return tokenTypeNames[idx]
+	}
+	return "Unknown"
 }
 
 func (i token) String() string {
@@ -114,7 +143,7 @@ func (l *lexer) nextStart() {
 		r, width := utf8.DecodeRuneInString(l.input[i:])
 		if r == '\n' {
 			l.line += 1
-			l.col = 0
+			l.col = 1
 		} else {
 			l.col += 1
 		}
@@ -535,6 +564,8 @@ func lex(input string) (*lexer, chan token) {
 	l := &lexer{
 		input:  input,
 		tokens: make(chan token),
+		line:   1,
+		col:    1,
 	}
 	go l.run()
 	return l, l.tokens

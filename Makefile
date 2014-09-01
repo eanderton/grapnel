@@ -30,6 +30,10 @@ GOFILES := $(shell find src -type f -name *.go)
 # 'go' wrapper that sets environment for each invocation
 GO := @GOPATH='$(PWD)' go
 
+# Handy target for 
+gofmt:
+	gofmt -w $(GOFILES)
+
 # Default target - used by travis-ci
 all: unittest smoketest
 

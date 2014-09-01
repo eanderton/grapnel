@@ -16,7 +16,6 @@ type parser struct {
 	tokensBuffer  []token
 	currentGroup  []string
 	seenGroupKeys []string
-	positions     *PositionMap
 }
 
 type parserStateFn func(*parser) parserStateFn
@@ -48,10 +47,10 @@ func (p *parser) peek() *token {
 func (p *parser) assume(typ tokenType) {
 	tok := p.getToken()
 	if tok == nil {
-		p.raiseError(tok, "was expecting token %s, but token stream is empty", tok.typ)
+		p.raiseError(tok, "was expecting token %s, but token stream is empty", tok)
 	}
 	if tok.typ != typ {
-		p.raiseError(tok, "was expecting token %s, but got %s", typ, tok.typ)
+		p.raiseError(tok, "was expecting token %s, but got %s instead", typ, tok)
 	}
 }
 
@@ -72,7 +71,7 @@ func parseStart(p *parser) parserStateFn {
 	tok := p.peek()
 
 	// prime position data with root tree instance
-	p.positions.SetTree(p.tree, tok.Position)
+	p.tree.position = tok.Position
 
 	// end of stream, parsing is finished
 	if tok == nil {
@@ -102,8 +101,9 @@ func parseGroupArray(p *parser) parserStateFn {
 	}
 
 	// get or create group array element at the indicated part in the path
-	p.currentGroup = strings.Split(key.val, ".")
-	dest_tree := p.tree.GetPath(p.currentGroup)
+	keys := strings.Split(key.val, ".")
+	p.tree.createSubTree(keys[:len(keys)-1]) // create parent entries
+	dest_tree := p.tree.GetPath(keys)
 	var array []*TomlTree
 	if dest_tree == nil {
 		array = make([]*TomlTree, 0)
@@ -112,33 +112,34 @@ func parseGroupArray(p *parser) parserStateFn {
 	} else {
 		p.raiseError(key, "key %s is already assigned and not of type group array", key)
 	}
+	p.currentGroup = keys
 
 	// add a new tree to the end of the group array
-	new_tree := make(TomlTree)
-	array = append(array, &new_tree)
+	new_tree := newTomlTree()
+	new_tree.position = start_token.Position
+	array = append(array, new_tree)
 	p.tree.SetPath(p.currentGroup, array)
 
-  // remove all keys that were children of this group array
-  prefix := key.val + "."
-  found := false
-  for ii := 0; ii < len(p.seenGroupKeys); {
-    groupKey := p.seenGroupKeys[ii]
-    if strings.HasPrefix(groupKey, prefix) {
-      p.seenGroupKeys = append(p.seenGroupKeys[:ii], p.seenGroupKeys[ii+1:]...)
-    } else {
-      found = (groupKey == key.val)
-      ii++
-    }
-  }
+	// remove all keys that were children of this group array
+	prefix := key.val + "."
+	found := false
+	for ii := 0; ii < len(p.seenGroupKeys); {
+		groupKey := p.seenGroupKeys[ii]
+		if strings.HasPrefix(groupKey, prefix) {
+			p.seenGroupKeys = append(p.seenGroupKeys[:ii], p.seenGroupKeys[ii+1:]...)
+		} else {
+			found = (groupKey == key.val)
+			ii++
+		}
+	}
 
-  // keep this key name from use by other kinds of assignments
+	// keep this key name from use by other kinds of assignments
 	if !found {
-    p.seenGroupKeys = append(p.seenGroupKeys, key.val)
-  }
+		p.seenGroupKeys = append(p.seenGroupKeys, key.val)
+	}
 
 	// move to next parser state
 	p.assume(tokenDoubleRightBracket)
-	p.positions.SetTree(&new_tree, start_token.Position)
 	return parseStart(p)
 }
 
@@ -154,14 +155,15 @@ func parseGroup(p *parser) parserStateFn {
 		}
 	}
 
-  p.seenGroupKeys = append(p.seenGroupKeys, key.val)
-	if err := p.tree.createSubTree(key.val); err != nil {
+	p.seenGroupKeys = append(p.seenGroupKeys, key.val)
+	keys := strings.Split(key.val, ".")
+	if err := p.tree.createSubTree(keys); err != nil {
 		p.raiseError(key, "%s", err)
 	}
 	p.assume(tokenRightBracket)
-	p.currentGroup = strings.Split(key.val, ".")
+	p.currentGroup = keys
 	target_tree := p.tree.GetPath(p.currentGroup).(*TomlTree)
-	p.positions.SetTree(target_tree, start_token.Position)
+	target_tree.position = start_token.Position
 	return parseStart(p)
 }
 
@@ -173,7 +175,7 @@ func parseAssign(p *parser) parserStateFn {
 	if len(p.currentGroup) > 0 {
 		group_key = p.currentGroup
 	} else {
-		group_key = make([]string, 0)
+		group_key = []string{}
 	}
 
 	// find the group to assign, looking out for arrays of groups
@@ -184,17 +186,18 @@ func parseAssign(p *parser) parserStateFn {
 	case *TomlTree:
 		target_node = node
 	default:
-		p.raiseError(key, "Unknown group type for path %s", group_key)
+		p.raiseError(key, "Unknown group type for path: %s",
+			strings.Join(group_key, "."))
 	}
 
 	// assign value to the found group
 	local_key := []string{key.val}
 	final_key := append(group_key, key.val)
 	if target_node.GetPath(local_key) != nil {
-		p.raiseError(key, "the following key was defined twice: %s", strings.Join(final_key, "."))
+		p.raiseError(key, "The following key was defined twice: %s",
+			strings.Join(final_key, "."))
 	}
-	target_node.SetPath(local_key, value)
-	p.positions.SetKey(target_node, key.val, key.Position)
+	target_node.values[key.val] = &tomlValue{value, key.Position}
 	return parseStart(p)
 }
 
@@ -274,16 +277,15 @@ func parseArray(p *parser) []interface{} {
 	return array
 }
 
-func parse(flow chan token) *parser {
-	result := make(TomlTree)
+func parse(flow chan token) *TomlTree {
+	result := newTomlTree()
 	parser := &parser{
 		flow:          flow,
-		tree:          &result,
+		tree:          result,
 		tokensBuffer:  make([]token, 0),
 		currentGroup:  make([]string, 0),
 		seenGroupKeys: make([]string, 0),
-		positions:     NewPositionMap(),
 	}
 	parser.run()
-	return parser
+	return result
 }

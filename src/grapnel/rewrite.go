@@ -125,7 +125,7 @@ func (self RewriteRuleArray) Apply(dep *Dependency) error {
 // Returns an array of RewriteRules, or error.
 func LoadRewriteRules(filename string) (RewriteRuleArray, error) {
   // load the config file
-  doc, err := toml.LoadDocumentFile(filename)
+  tree, err := toml.LoadFile(filename)
   if err != nil {
     return nil, fmt.Errorf("%s: %s", filename, err)
   }
@@ -137,43 +137,42 @@ func LoadRewriteRules(filename string) (RewriteRuleArray, error) {
     return nil, fmt.Errorf(curriedFormat, values...)
   }
 
-  tree := doc.Root
   rules := RewriteRuleArray{}
   for _, ruleTree := range tree.Get("rewrite").([]*toml.TomlTree) {
     rule := NewRewriteRule()
     matchTree, ok := ruleTree.Get("match").(*toml.TomlTree)
     if !ok {
-      pos, _ = doc.Positions.GetTree(ruleTree)
+      pos = ruleTree.GetPosition("")
       return errorf("Expected 'match' subtree for rewrite rule")
     }
     replaceTree, ok := ruleTree.Get("replace").(*toml.TomlTree)
     if !ok {
-      pos, _ = doc.Positions.GetTree(ruleTree)
+      pos = ruleTree.GetPosition("")
       return errorf("Expected 'replace' subtree for rewrite rule")
     }
-    for key, match := range *matchTree {
-      matchString, ok := match.(string)
+    for _, key := range matchTree.Keys() {
+      matchString, ok := matchTree.Get(key).(string)
       if !ok {
-        pos, _ = doc.Positions.GetKey(matchTree, key)
+        pos = matchTree.GetPosition(key)
         return errorf("Match expression must be a string value")
       }
       matchRegex, err := regexp.Compile(matchString)
       if err != nil {
-        pos, _ = doc.Positions.GetKey(matchTree, key)
+        pos = matchTree.GetPosition(key)
         return errorf("Error compiling match expression: %s", err)
       }
       rule.Matches[key] = matchRegex
     }
-    for key, replace := range *replaceTree {
-      replaceString, ok := replace.(string)
+    for _, key := range replaceTree.Keys() {
+      replaceString, ok := replaceTree.Get(key).(string)
       if !ok {
-        pos, _ = doc.Positions.GetKey(replaceTree, key)
+        pos = replaceTree.GetPosition(key)
         return errorf("Replace expression must be a string value")
       }
       replaceTempl, err := RewriteTemplate(replaceString)
       if err != nil {
-        pos, _ = doc.Positions.GetKey(replaceTree, key)
-        return nil, fmt.Errorf("Error compiling replace expression:", err)
+        pos = replaceTree.GetPosition(key)
+        return errorf("Error compiling replace expression: %s", err)
       }
       rule.Replacements[key] = replaceTempl
     }

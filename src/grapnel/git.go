@@ -150,7 +150,6 @@ func (self *GitSCM) Resolve(dep *Dependency) (*Library, error) {
     }
   }
 
-
   // fail if the tag cannot be determined.
   if lib.Version == nil {
     return nil, fmt.Errorf("Cannot find a tag for dependency version specification: %v.", lib.VersionSpec)

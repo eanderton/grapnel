@@ -57,9 +57,11 @@ var (
 func getResolver() (*Resolver, error) {
   resolver := NewResolver()
   resolver.LibSources["git"] = &GitSCM{}
+  resolver.LibSources["archive"] = &ArchiveSCM{}
 
   resolver.AddRewriteRules(BasicRewriteRules)
   resolver.AddRewriteRules(GitRewriteRules)
+  resolver.AddRewriteRules(ArchiveRewriteRules)
 
   // find/validate configuration file
   if configFileName != "" {

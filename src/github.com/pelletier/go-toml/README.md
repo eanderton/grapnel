@@ -8,11 +8,30 @@ This library supports TOML version
 [![GoDoc](https://godoc.org/github.com/pelletier/go-toml?status.svg)](http://godoc.org/github.com/pelletier/go-toml)
 [![Build Status](https://travis-ci.org/pelletier/go-toml.svg?branch=master)](https://travis-ci.org/pelletier/go-toml)
 
+## Features
+
+Go-toml provides the following features for using data parsed from TOML documents:
+
+* Load TOML documents from files and string data
+* Easily navigate TOML structure using TomlTree
+* Line & column position data for all parsed elements
+* Query support similar to JSON-Path
+* Syntax errors contain line and column numbers
+
+Go-toml is designed to help cover use-cases not covered by reflection-based TOML parsing:
+
+* Semantic evaluation of parsed TOML
+* Informing a user of mistakes in the source document, after it has been parsed
+* Programatic handling of default values on a case-by-case basis
+* Using a TOML document as a flexible data-store
+
 ## Import
 
     import "github.com/pelletier/go-toml"
 
 ## Usage
+
+### Example
 
 Say you have a TOML file that looks like this:
 
@@ -43,12 +62,22 @@ if err != nil {
     user = configTree.Get("user").(string)
     password = configTree.Get("password").(string)
     fmt.Println("User is ", user, ". Password is ", password)
+
+    // show where elements are in the file
+    fmt.Println("User position: %v", configTree.GetPosition("user"))
+    fmt.Println("Password position: %v", configTree.GetPosition("password"))
+
+    // use a query to gather elements without walking the tree
+    results, _ := config.Query("$..[user,password]")
+    for ii, item := range results.Values() {
+      fmt.Println("Query result %d: %v", ii, item)
+    }
 }
 ```
 
 ## Documentation
 
-The documentation is available at
+The documentation and additional examples are available at
 [godoc.org](http://godoc.org/github.com/pelletier/go-toml).
 
 ## Contribute

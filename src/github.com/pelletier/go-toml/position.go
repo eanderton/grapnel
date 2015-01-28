@@ -6,7 +6,13 @@ import (
 	"fmt"
 )
 
-// position within a TOML document
+/*
+  Position of a document element within a TOML document.
+
+  Line and Col are both 1-indexed positions for the element's line number and
+  column number, respectively.  Values of zero or less will cause Invalid(),
+  to return true.
+*/
 type Position struct {
 	Line int // line within the document
 	Col  int // column within the line
@@ -18,6 +24,8 @@ func (p *Position) String() string {
 	return fmt.Sprintf("(%d, %d)", p.Line, p.Col)
 }
 
+// Returns whether or not the position is valid (i.e. with negative or
+// null values)
 func (p *Position) Invalid() bool {
 	return p.Line <= 0 || p.Col <= 0
 }

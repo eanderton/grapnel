@@ -3,6 +3,6 @@
 # Unversioned
 type = "git"
 import = "github.com/pelletier/go-toml"
-url = "http://github.com/eanderton/go-toml"
+url = "http://github.com/pelletier/go-toml"
 branch = "master"
-tag = "c0c5d6518584bfa701045963e3cca74975de01ef"
+tag = "v0.2.1"

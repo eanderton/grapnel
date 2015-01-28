@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type parser struct {
+type tomlParser struct {
 	flow          chan token
 	tree          *TomlTree
 	tokensBuffer  []token
@@ -18,20 +18,20 @@ type parser struct {
 	seenGroupKeys []string
 }
 
-type parserStateFn func(*parser) parserStateFn
+type tomlParserStateFn func() tomlParserStateFn
 
 // Formats and panics an error message based on a token
-func (p *parser) raiseError(tok *token, msg string, args ...interface{}) {
+func (p *tomlParser) raiseError(tok *token, msg string, args ...interface{}) {
 	panic(tok.Position.String() + ": " + fmt.Sprintf(msg, args...))
 }
 
-func (p *parser) run() {
-	for state := parseStart; state != nil; {
-		state = state(p)
+func (p *tomlParser) run() {
+	for state := p.parseStart; state != nil; {
+		state = state()
 	}
 }
 
-func (p *parser) peek() *token {
+func (p *tomlParser) peek() *token {
 	if len(p.tokensBuffer) != 0 {
 		return &(p.tokensBuffer[0])
 	}
@@ -44,7 +44,7 @@ func (p *parser) peek() *token {
 	return &tok
 }
 
-func (p *parser) assume(typ tokenType) {
+func (p *tomlParser) assume(typ tokenType) {
 	tok := p.getToken()
 	if tok == nil {
 		p.raiseError(tok, "was expecting token %s, but token stream is empty", tok)
@@ -54,7 +54,7 @@ func (p *parser) assume(typ tokenType) {
 	}
 }
 
-func (p *parser) getToken() *token {
+func (p *tomlParser) getToken() *token {
 	if len(p.tokensBuffer) != 0 {
 		tok := p.tokensBuffer[0]
 		p.tokensBuffer = p.tokensBuffer[1:]
@@ -67,11 +67,8 @@ func (p *parser) getToken() *token {
 	return &tok
 }
 
-func parseStart(p *parser) parserStateFn {
+func (p *tomlParser) parseStart() tomlParserStateFn {
 	tok := p.peek()
-
-	// prime position data with root tree instance
-	p.tree.position = tok.Position
 
 	// end of stream, parsing is finished
 	if tok == nil {
@@ -80,11 +77,11 @@ func parseStart(p *parser) parserStateFn {
 
 	switch tok.typ {
 	case tokenDoubleLeftBracket:
-		return parseGroupArray
+		return p.parseGroupArray
 	case tokenLeftBracket:
-		return parseGroup
+		return p.parseGroup
 	case tokenKey:
-		return parseAssign
+		return p.parseAssign
 	case tokenEOF:
 		return nil
 	default:
@@ -93,8 +90,8 @@ func parseStart(p *parser) parserStateFn {
 	return nil
 }
 
-func parseGroupArray(p *parser) parserStateFn {
-	start_token := p.getToken() // discard the [[
+func (p *tomlParser) parseGroupArray() tomlParserStateFn {
+	startToken := p.getToken() // discard the [[
 	key := p.getToken()
 	if key.typ != tokenKeyGroupArray {
 		p.raiseError(key, "unexpected token %s, was expecting a key group array", key)
@@ -102,22 +99,22 @@ func parseGroupArray(p *parser) parserStateFn {
 
 	// get or create group array element at the indicated part in the path
 	keys := strings.Split(key.val, ".")
-	p.tree.createSubTree(keys[:len(keys)-1]) // create parent entries
-	dest_tree := p.tree.GetPath(keys)
+	p.tree.createSubTree(keys[:len(keys)-1], startToken.Position) // create parent entries
+	destTree := p.tree.GetPath(keys)
 	var array []*TomlTree
-	if dest_tree == nil {
+	if destTree == nil {
 		array = make([]*TomlTree, 0)
-	} else if dest_tree.([]*TomlTree) != nil {
-		array = dest_tree.([]*TomlTree)
+	} else if destTree.([]*TomlTree) != nil {
+		array = destTree.([]*TomlTree)
 	} else {
 		p.raiseError(key, "key %s is already assigned and not of type group array", key)
 	}
 	p.currentGroup = keys
 
 	// add a new tree to the end of the group array
-	new_tree := newTomlTree()
-	new_tree.position = start_token.Position
-	array = append(array, new_tree)
+	newTree := newTomlTree()
+	newTree.position = startToken.Position
+	array = append(array, newTree)
 	p.tree.SetPath(p.currentGroup, array)
 
 	// remove all keys that were children of this group array
@@ -140,11 +137,11 @@ func parseGroupArray(p *parser) parserStateFn {
 
 	// move to next parser state
 	p.assume(tokenDoubleRightBracket)
-	return parseStart(p)
+	return p.parseStart
 }
 
-func parseGroup(p *parser) parserStateFn {
-	start_token := p.getToken() // discard the [
+func (p *tomlParser) parseGroup() tomlParserStateFn {
+	startToken := p.getToken() // discard the [
 	key := p.getToken()
 	if key.typ != tokenKeyGroup {
 		p.raiseError(key, "unexpected token %s, was expecting a key group", key)
@@ -157,51 +154,49 @@ func parseGroup(p *parser) parserStateFn {
 
 	p.seenGroupKeys = append(p.seenGroupKeys, key.val)
 	keys := strings.Split(key.val, ".")
-	if err := p.tree.createSubTree(keys); err != nil {
+	if err := p.tree.createSubTree(keys, startToken.Position); err != nil {
 		p.raiseError(key, "%s", err)
 	}
 	p.assume(tokenRightBracket)
 	p.currentGroup = keys
-	target_tree := p.tree.GetPath(p.currentGroup).(*TomlTree)
-	target_tree.position = start_token.Position
-	return parseStart(p)
+	return p.parseStart
 }
 
-func parseAssign(p *parser) parserStateFn {
+func (p *tomlParser) parseAssign() tomlParserStateFn {
 	key := p.getToken()
 	p.assume(tokenEqual)
-	value := parseRvalue(p)
-	var group_key []string
+	value := p.parseRvalue()
+	var groupKey []string
 	if len(p.currentGroup) > 0 {
-		group_key = p.currentGroup
+		groupKey = p.currentGroup
 	} else {
-		group_key = []string{}
+		groupKey = []string{}
 	}
 
 	// find the group to assign, looking out for arrays of groups
-	var target_node *TomlTree
-	switch node := p.tree.GetPath(group_key).(type) {
+	var targetNode *TomlTree
+	switch node := p.tree.GetPath(groupKey).(type) {
 	case []*TomlTree:
-		target_node = node[len(node)-1]
+		targetNode = node[len(node)-1]
 	case *TomlTree:
-		target_node = node
+		targetNode = node
 	default:
 		p.raiseError(key, "Unknown group type for path: %s",
-			strings.Join(group_key, "."))
+			strings.Join(groupKey, "."))
 	}
 
 	// assign value to the found group
-	local_key := []string{key.val}
-	final_key := append(group_key, key.val)
-	if target_node.GetPath(local_key) != nil {
+	localKey := []string{key.val}
+	finalKey := append(groupKey, key.val)
+	if targetNode.GetPath(localKey) != nil {
 		p.raiseError(key, "The following key was defined twice: %s",
-			strings.Join(final_key, "."))
+			strings.Join(finalKey, "."))
 	}
-	target_node.values[key.val] = &tomlValue{value, key.Position}
-	return parseStart(p)
+	targetNode.values[key.val] = &tomlValue{value, key.Position}
+	return p.parseStart
 }
 
-func parseRvalue(p *parser) interface{} {
+func (p *tomlParser) parseRvalue() interface{} {
 	tok := p.getToken()
 	if tok == nil || tok.typ == tokenEOF {
 		p.raiseError(tok, "expecting a value")
@@ -233,7 +228,7 @@ func parseRvalue(p *parser) interface{} {
 		}
 		return val
 	case tokenLeftBracket:
-		return parseArray(p)
+		return p.parseArray()
 	case tokenError:
 		p.raiseError(tok, "%s", tok)
 	}
@@ -243,8 +238,8 @@ func parseRvalue(p *parser) interface{} {
 	return nil
 }
 
-func parseArray(p *parser) []interface{} {
-	array := make([]interface{}, 0)
+func (p *tomlParser) parseArray() []interface{} {
+	var array []interface{}
 	arrayType := reflect.TypeOf(nil)
 	for {
 		follow := p.peek()
@@ -255,7 +250,7 @@ func parseArray(p *parser) []interface{} {
 			p.getToken()
 			return array
 		}
-		val := parseRvalue(p)
+		val := p.parseRvalue()
 		if arrayType == nil {
 			arrayType = reflect.TypeOf(val)
 		}
@@ -277,9 +272,10 @@ func parseArray(p *parser) []interface{} {
 	return array
 }
 
-func parse(flow chan token) *TomlTree {
+func parseToml(flow chan token) *TomlTree {
 	result := newTomlTree()
-	parser := &parser{
+	result.position = Position{1, 1}
+	parser := &tomlParser{
 		flow:          flow,
 		tree:          result,
 		tokensBuffer:  make([]token, 0),

@@ -82,7 +82,7 @@ func getResolver() (*Resolver, error) {
     }
     // warn and exit here if we can't locate on the search path
     if configFileName == "" {
-      log.Warn("Could not locate .grapnelrc file")
+      log.Warn("Could not locate .grapnelrc file; continuing.")
       return resolver, nil
     }
   }

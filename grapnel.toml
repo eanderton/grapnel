@@ -25,6 +25,5 @@ package_root = "src"
 
 [[dependencies]]
 import = "github.com/pelletier/go-toml"
-url = "http://github.com/eanderton/go-toml"
-#version = "== 0.2.0" #TODO: not released yet
+version = "= 0.2.1"
 

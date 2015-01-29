@@ -31,7 +31,7 @@ func TestParseVersionSpec(t *testing.T) {
 
   // positive tests
   for k,v := range map[string]*VersionSpec {
-    ">1.0": NewVersionSpec(OpGt, 1, 0, -1), 
+    ">1.0": NewVersionSpec(OpGt, 1, 0, -1),
     "=1.1": NewVersionSpec(OpEq, 1, 1, -1),
     "<1.1.1": NewVersionSpec(OpLt, 1, 1, 1),
     " <= 1.*.* ": NewVersionSpec(OpLte, 1, -1, -1),
@@ -71,12 +71,13 @@ func TestParseVersion(t *testing.T) {
 
   // positive tests
   for k,v := range map[string]*Version {
-    "1.0": NewVersion(1, 0, -1), 
+    "1.0": NewVersion(1, 0, -1),
     "1.1": NewVersion(1, 1, -1),
     "1.1.1": NewVersion(1, 1, 1),
     " v1.5 ": NewVersion(1, 5, -1),
     " release100.0 ": NewVersion(100, 0, -1),
     "release.r60 ": NewVersion(60, -1, -1),
+    "r2015.01.24": NewVersion(2015, 1, 24),
     " 5 ": NewVersion(5, -1, -1),
   } {
     version, err := ParseVersion(k);

@@ -84,6 +84,22 @@ func (self *VersionSpec) String() string {
   return fmt.Sprintf("%s %v.%v.%v", op, self.Major, minor, subminor)
 }
 
+func (self *Version) String() string {
+  var minor string
+  if self.Minor == -1 {
+    minor = "*"
+  } else {
+    minor = strconv.Itoa(self.Minor)
+  }
+  var subminor string
+  if self.Subminor == -1 {
+    subminor = "*"
+  } else {
+    subminor = strconv.Itoa(self.Subminor)
+  }
+  return fmt.Sprintf("%v.%v.%v", self.Major, minor, subminor)
+}
+
 func getMinMax(oper int, value int) (int, int) {
   var min, max int
   if value == -1 {

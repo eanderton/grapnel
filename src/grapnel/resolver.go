@@ -156,6 +156,7 @@ func (self *Resolver) ResolveDependencies(deps []*Dependency) ([]*Library, error
     tempQueue := make([]*Dependency, 0)
     failed := false
     for ii := 0; ii < len(workQueue); ii++ {
+      log.Debug("working on %s of  %s", ii, len(workQueue))
       select {
       case lib := <- results:
         log.Debug("Reconciled library: %s", lib.Import)

@@ -122,7 +122,7 @@ func (self *Library) AddDependencies() error {
 func (self *Library) ToToml(writer io.Writer) {
   fmt.Fprintf(writer, "\n[[dependencies]]\n")
   if self.Version.Major > 0 {
-    fmt.Fprintf(writer, "version = \"==%v\"\n", self.Version)
+    fmt.Fprintf(writer, "version = \"%v\"\n", self.Version)
   } else {
     fmt.Fprintf(writer, "# Unversioned\n")
   }

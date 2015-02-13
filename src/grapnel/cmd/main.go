@@ -34,9 +34,9 @@ import (
 // application configurables w/default settings
 var (
   configFilePath []string = []string{
-    "/etc/.grapnelrc",
-    "~/.grapnelrc",
     "./.grapnelrc",
+    "~/.grapnelrc",
+    "/etc/.grapnelrc",
   }
   configFileName string
 

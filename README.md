@@ -13,9 +13,10 @@ Usage:
    ./grapnel [flags] [command]
 
 Available Commands:
-  help    [command] Displays help for a command                              
-  install           Ensure that dependencies are installed and ready for use.
-  version           Version information                                      
+  help    [command] Displays help for a command                         
+  install           Locked dependencies are installed and ready for use.
+  update            Latest dependencies are installed and ready for use.
+  version           Version information                                 
 
 Available Flags:
   --debug                 Debug output                
@@ -23,9 +24,12 @@ Available Flags:
   -c,--config  [filename] Configuration file          
   -h,--help    [command]  Displays help for a command 
   -q,--quiet              Quiet output                
-  -t,--target  [path]     Where to manage packages    
   -v,--verbose            Verbose output              
 
+Defaults:
+  Lock file = ./grapnel-lock.toml
+  Package file = ./grapnel.toml
+  Config file path = ./.grapnelrc, ~/.grapnelrc, /etc/.grapnelrc
 Use 'grapnel help [command]' for more information about that command.
 ```
 
@@ -52,7 +56,7 @@ Grapnel is a work in progress. Release v0.2 features a very rudimentary take on
 how the tool is designed to configure dependencies from outside your source.
 
 Grapnel's approach is modeled on Ruby's Bundler, with some inspiration from
-CPAN, SetupUtils, Dub, and Crate.
+CPAN, SetupUtils, Dub, and Cargo.
 
 Motivation
 ==========

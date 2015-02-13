@@ -51,17 +51,29 @@ func TestRewrite(t *testing.T) {
         Type: "git",
 
       },
+    },{
+      Src: &Dependency{
+        Import: "gopkg.in/foo.v1",
+      },
+      Dst: &Dependency{
+        Import: "gopkg.in/foo.v1",
+        Url: url.MustParse("http://github.com/go-foo/foo"),
+        Branch: "v1",
+        Type: "git",
+
+      },
     },
   } {
     if err := rules.Apply(test.Src); err != nil {
       t.Errorf("Error during replacement %v; Src: %v", err, test.Src.Flatten())
     }
     if !test.Src.Equal(test.Dst) {
-      t.Errorf("Error during replacement Src: %v; Dst: %v",
+      t.Errorf("Error during replacement Src: %#v; Dst: %#v",
         test.Src.Flatten(), test.Dst.Flatten())
     }
   }
 }
+
 
 func TestLoadRewriteRules(t *testing.T) {
   log.SetGlobalLogLevel(log.DEBUG)

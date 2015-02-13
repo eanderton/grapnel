@@ -45,7 +45,7 @@ var GitRewriteRules = RewriteRuleArray {
   &RewriteRule{
     Matches: MatchMap{
       "host": regexp.MustCompile(`gopkg\.in`),
-      "path": regexp.MustCompile(`/[^/]+`),
+      "path": regexp.MustCompile(`^/[^/]+$`),
     },
     Replacements: ReplaceMap{
       "branch": template.Must(RewriteTemplate(`{{replace .path "^.*\\.(.*)$" "$1"}}`)),
@@ -57,7 +57,7 @@ var GitRewriteRules = RewriteRuleArray {
   &RewriteRule{
     Matches: MatchMap{
       "host": regexp.MustCompile(`gopkg\.in`),
-      "path": regexp.MustCompile(`.+/.+`),
+      "path": regexp.MustCompile(`^.+/.+$`),
     },
     Replacements: ReplaceMap{
       "branch": template.Must(RewriteTemplate(`{{replace .path "^.*\\.(.*)$" "$1"}}`)),

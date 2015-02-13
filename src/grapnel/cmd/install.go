@@ -92,7 +92,7 @@ func installFn(cmd *Command, args []string) error {
 }
 
 var installCmd = Command{
-  Desc: "Ensure that locked dependencies are installed and ready for use.",
+  Desc: "Locked dependencies are installed and ready for use.",
   Help: " Installs packages at 'targetPath', from configured lock file.\n" +
     "\nDefaults:\n" +
     "  Lock file = " + defaultLockFileName + "\n" +

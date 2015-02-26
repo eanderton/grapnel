@@ -138,45 +138,49 @@ func LoadRewriteRules(filename string) (RewriteRuleArray, error) {
   }
 
   rules := RewriteRuleArray{}
-  for _, ruleTree := range tree.Get("rewrite").([]*toml.TomlTree) {
-    rule := NewRewriteRule()
-    matchTree, ok := ruleTree.Get("match").(*toml.TomlTree)
-    if !ok {
-      pos = ruleTree.GetPosition("")
-      return errorf("Expected 'match' subtree for rewrite rule")
-    }
-    replaceTree, ok := ruleTree.Get("replace").(*toml.TomlTree)
-    if !ok {
-      pos = ruleTree.GetPosition("")
-      return errorf("Expected 'replace' subtree for rewrite rule")
-    }
-    for _, key := range matchTree.Keys() {
-      matchString, ok := matchTree.Get(key).(string)
+  return rules, nil
+
+  if rewriteTree := tree.Get("rewrite"); rewriteTree != nil {
+    for _, ruleTree := range rewriteTree.([]*toml.TomlTree) {
+      rule := NewRewriteRule()
+      matchTree, ok := ruleTree.Get("match").(*toml.TomlTree)
       if !ok {
-        pos = matchTree.GetPosition(key)
-        return errorf("Match expression must be a string value")
+        pos = ruleTree.GetPosition("")
+        return errorf("Expected 'match' subtree for rewrite rule")
       }
-      matchRegex, err := regexp.Compile(matchString)
-      if err != nil {
-        pos = matchTree.GetPosition(key)
-        return errorf("Error compiling match expression: %s", err)
-      }
-      rule.Matches[key] = matchRegex
-    }
-    for _, key := range replaceTree.Keys() {
-      replaceString, ok := replaceTree.Get(key).(string)
+      replaceTree, ok := ruleTree.Get("replace").(*toml.TomlTree)
       if !ok {
-        pos = replaceTree.GetPosition(key)
-        return errorf("Replace expression must be a string value")
+        pos = ruleTree.GetPosition("")
+        return errorf("Expected 'replace' subtree for rewrite rule")
       }
-      replaceTempl, err := RewriteTemplate(replaceString)
-      if err != nil {
-        pos = replaceTree.GetPosition(key)
-        return errorf("Error compiling replace expression: %s", err)
+      for _, key := range matchTree.Keys() {
+        matchString, ok := matchTree.Get(key).(string)
+        if !ok {
+          pos = matchTree.GetPosition(key)
+          return errorf("Match expression must be a string value")
+        }
+        matchRegex, err := regexp.Compile(matchString)
+        if err != nil {
+          pos = matchTree.GetPosition(key)
+          return errorf("Error compiling match expression: %s", err)
+        }
+        rule.Matches[key] = matchRegex
       }
-      rule.Replacements[key] = replaceTempl
+      for _, key := range replaceTree.Keys() {
+        replaceString, ok := replaceTree.Get(key).(string)
+        if !ok {
+          pos = replaceTree.GetPosition(key)
+          return errorf("Replace expression must be a string value")
+        }
+        replaceTempl, err := RewriteTemplate(replaceString)
+        if err != nil {
+          pos = replaceTree.GetPosition(key)
+          return errorf("Error compiling replace expression: %s", err)
+        }
+        rule.Replacements[key] = replaceTempl
+      }
+      rules = append(rules, rule)
     }
-    rules = append(rules, rule)
   }
   return rules, nil
 }

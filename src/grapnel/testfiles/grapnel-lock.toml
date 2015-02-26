@@ -1,0 +1,80 @@
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/bradfitz/gomemcache"
+url = "http://github.com/bradfitz/gomemcache"
+branch = "master"
+tag = "release.r60"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/gorilla/mux"
+url = "http://github.com/gorilla/mux"
+branch = "master"
+tag = "8a875a034c69b940914d83ea03d3f1299b4d094b"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "gopkg.in/inconshreveable/log15.v2"
+url = "http://github.com/inconshreveable/log15"
+branch = "v2"
+tag = "03ef3a3e78757fb8596ab2971c0613711eec19aa"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/pelletier/go-toml"
+url = "http://github.com/pelletier/go-toml"
+branch = "master"
+tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/spf13/cobra"
+url = "http://github.com/spf13/cobra"
+branch = "master"
+tag = "f8e1ec56bdd7494d309c69681267859a6bfb7549"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/ngmoco/timber"
+url = "http://github.com/ngmoco/timber"
+branch = "master"
+tag = "c53e208f58280c5e9e89d9c6b0c358e5ae412a1a"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/lib/pq"
+url = "http://github.com/lib/pq"
+branch = "master"
+tag = "72d960fe96ac86dfd376b0de7ca81c0334838d0b"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/gorilla/context"
+url = "http://github.com/gorilla/context"
+branch = "master"
+tag = "215affda49addc4c8ef7e2534915df2c8c35c6cd"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/mattn/go-colorable"
+url = "http://github.com/mattn/go-colorable"
+branch = "master"
+tag = "043ae16291351db8465272edf465c9f388161627"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/spf13/pflag"
+url = "http://github.com/spf13/pflag"
+branch = "master"
+tag = "370c3171201099fa6b466db45c8a032cbce33d8d"

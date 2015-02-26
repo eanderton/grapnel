@@ -43,6 +43,12 @@ func getResolutionContext() *build.Context {
 
 // checks if an import path is already globally provided
 func IsStandardDependency(importName string) bool {
+  // cgo concession
+  if importName == "C" {
+    return true
+  }
+
+  // use the build context to resolve standard import
   context := getResolutionContext()
   _, err := context.Import(importName, "", build.FindOnly)
   return err == nil

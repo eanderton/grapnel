@@ -119,7 +119,7 @@ func TestLoadRewriteRules(t *testing.T) {
     },
   }
 
-  rules, err := LoadRewriteRules("testfiles/grapnelrc.toml")
+  rules, err := LoadRewriteRules("./testfiles/grapnelrc.toml")
   if err != nil {
     t.Errorf("Error loading rules")
     t.Errorf("%v", err)
@@ -158,5 +158,20 @@ func TestLoadRewriteRules(t *testing.T) {
       }
     }
 */
+  }
+}
+
+func TestLoadEmptyRewriteRules(t *testing.T) {
+  log.SetGlobalLogLevel(log.DEBUG)
+
+  rules, err := LoadRewriteRules("testfiles/empty.grapnelrc.toml")
+  if err != nil {
+    t.Errorf("Error loading rules")
+    t.Errorf("%v", err)
+    return
+  }
+  if len(rules) != 0 {
+    t.Errorf("Expected no rules to be parsed from config file")
+    return
   }
 }

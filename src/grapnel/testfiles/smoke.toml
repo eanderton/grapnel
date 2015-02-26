@@ -40,3 +40,6 @@ import = "github.com/spf13/cobra"
 
 [[dependencies]]
 import = "gopkg.in/inconshreveable/log15.v2"
+
+[[dependencies]]
+import = "github.com/lib/pq"

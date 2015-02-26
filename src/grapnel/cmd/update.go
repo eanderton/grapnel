@@ -125,7 +125,7 @@ func updateFn(cmd *Command, args []string) error {
 }
 
 var updateCmd = Command{
-  Desc: "Latest dependencies are installed and ready for use.",
+  Desc: "Downloads and installs dependencies that need to be updated.",
   Help: " Installs packages at 'targetPath', from configured package file.\n" +
     "\nDefaults:\n" +
     "  Package file = " + defaultPackageFileName + "\n" +

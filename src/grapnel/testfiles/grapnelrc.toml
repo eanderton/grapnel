@@ -1,0 +1,47 @@
+[[rewrite]]
+[rewrite.match]
+  import = ".+"
+  url = "^$"
+[rewrite.replace]
+  url = "http://{{.import}}"
+
+[[rewrite]]
+[rewrite.match]
+  import = "^$"
+  url = ".+"
+[rewrite.replace]
+  import = "{{.host}}/{{.path}}"
+
+[[rewrite]]
+[rewrite.match]
+  scheme = "git"
+[rewrite.replace]
+  type = "git"
+
+[[rewrite]]
+[rewrite.match]
+  path = ".*\\.git"
+[rewrite.replace]
+  type = "git"
+
+[[rewrite]]
+[rewrite.match]
+  import = "github.com/.*"
+[rewrite.replace]
+  type = "git"
+
+[[rewrite]]
+[rewrite.match]
+  host = "github.com"
+[rewrite.replace]
+  type = "git"
+
+[[rewrite]]
+[rewrite.match]
+  host = "gopkg\\.in"
+[rewrite.replace]
+  branch = '{{replace .path "^.*\\.(.*)$\" "$1"}}'
+  path = '{{replace .path "^(.*)\\..*$" "$1"}}'
+  host = 'github.com'
+  type = 'git'
+

@@ -138,7 +138,7 @@ func (l *tomlLexer) lexVoid() tomlLexStateFn {
 			return l.lexRvalue
 		}
 
-		if isKeyChar(next) {
+		if isKeyStartChar(next) {
 			return l.lexKey
 		}
 
@@ -169,6 +169,8 @@ func (l *tomlLexer) lexRvalue() tomlLexStateFn {
 			return l.lexComment
 		case '"':
 			return l.lexString
+		case '\'':
+			return l.lexLiteralString
 		case ',':
 			return l.lexComma
 		case '\n':
@@ -192,7 +194,10 @@ func (l *tomlLexer) lexRvalue() tomlLexStateFn {
 			return l.lexKey
 		}
 
-		if dateRegexp.FindString(l.input[l.pos:]) != "" {
+		dateMatch := dateRegexp.FindString(l.input[l.pos:])
+		if dateMatch != "" {
+			l.ignore()
+			l.pos += len(dateMatch)
 			return l.lexDate
 		}
 
@@ -214,8 +219,6 @@ func (l *tomlLexer) lexRvalue() tomlLexStateFn {
 }
 
 func (l *tomlLexer) lexDate() tomlLexStateFn {
-	l.ignore()
-	l.pos += 20 // Fixed size of a date in TOML
 	l.emit(tokenDate)
 	return l.lexRvalue
 }
@@ -250,7 +253,10 @@ func (l *tomlLexer) lexComma() tomlLexStateFn {
 
 func (l *tomlLexer) lexKey() tomlLexStateFn {
 	l.ignore()
-	for isKeyChar(l.next()) {
+	for r := l.next(); isKeyChar(r); r = l.next() {
+		if r == '#' {
+			return l.errorf("keys cannot contain # character")
+		}
 	}
 	l.backup()
 	l.emit(tokenKey)
@@ -275,63 +281,123 @@ func (l *tomlLexer) lexLeftBracket() tomlLexStateFn {
 	return l.lexRvalue
 }
 
+func (l *tomlLexer) lexLiteralString() tomlLexStateFn {
+	l.pos++
+	l.ignore()
+	growingString := ""
+
+	// handle special case for triple-quote
+	terminator := "'"
+	if l.follow("''") {
+		l.pos += 2
+		l.ignore()
+		terminator = "'''"
+
+		// special case: discard leading newline
+		if l.peek() == '\n' {
+			l.pos++
+			l.ignore()
+		}
+	}
+
+	// find end of string
+	for {
+		if l.follow(terminator) {
+			l.emitWithValue(tokenString, growingString)
+			l.pos += len(terminator)
+			l.ignore()
+			return l.lexRvalue
+		}
+
+		growingString += string(l.peek())
+
+		if l.next() == eof {
+			break
+		}
+	}
+
+	return l.errorf("unclosed string")
+}
+
 func (l *tomlLexer) lexString() tomlLexStateFn {
 	l.pos++
 	l.ignore()
 	growingString := ""
 
-	for {
-		if l.peek() == '"' {
-			l.emitWithValue(tokenString, growingString)
+	// handle special case for triple-quote
+	terminator := "\""
+	if l.follow("\"\"") {
+		l.pos += 2
+		l.ignore()
+		terminator = "\"\"\""
+
+		// special case: discard leading newline
+		if l.peek() == '\n' {
 			l.pos++
+			l.ignore()
+		}
+	}
+
+	for {
+		if l.follow(terminator) {
+			l.emitWithValue(tokenString, growingString)
+			l.pos += len(terminator)
 			l.ignore()
 			return l.lexRvalue
 		}
 
-		if l.follow("\\\"") {
+		if l.follow("\\") {
 			l.pos++
-			growingString += "\""
-		} else if l.follow("\\n") {
-			l.pos++
-			growingString += "\n"
-		} else if l.follow("\\b") {
-			l.pos++
-			growingString += "\b"
-		} else if l.follow("\\f") {
-			l.pos++
-			growingString += "\f"
-		} else if l.follow("\\/") {
-			l.pos++
-			growingString += "/"
-		} else if l.follow("\\t") {
-			l.pos++
-			growingString += "\t"
-		} else if l.follow("\\r") {
-			l.pos++
-			growingString += "\r"
-		} else if l.follow("\\\\") {
-			l.pos++
-			growingString += "\\"
-		} else if l.follow("\\u") {
-			l.pos += 2
-			code := ""
-			for i := 0; i < 4; i++ {
-				c := l.peek()
+			switch l.peek() {
+			case '\r':
+				fallthrough
+			case '\n':
+				fallthrough
+			case '\t':
+				fallthrough
+			case ' ':
+				// skip all whitespace chars following backslash
 				l.pos++
-				if !isHexDigit(c) {
-					return l.errorf("unfinished unicode escape")
+				for strings.ContainsRune("\r\n\t ", l.peek()) {
+					l.pos++
 				}
-				code = code + string(c)
+				l.pos--
+			case '"':
+				growingString += "\""
+			case 'n':
+				growingString += "\n"
+			case 'b':
+				growingString += "\b"
+			case 'f':
+				growingString += "\f"
+			case '/':
+				growingString += "/"
+			case 't':
+				growingString += "\t"
+			case 'r':
+				growingString += "\r"
+			case '\\':
+				growingString += "\\"
+			case 'u':
+				l.pos++
+				code := ""
+				for i := 0; i < 4; i++ {
+					c := l.peek()
+					l.pos++
+					if !isHexDigit(c) {
+						return l.errorf("unfinished unicode escape")
+					}
+					code = code + string(c)
+				}
+				l.pos--
+				intcode, err := strconv.ParseInt(code, 16, 32)
+				if err != nil {
+					return l.errorf("invalid unicode escape: \\u" + code)
+				}
+				growingString += string(rune(intcode))
+			default:
+				return l.errorf("invalid escape sequence: \\" + string(l.peek()))
 			}
-			l.pos--
-			intcode, err := strconv.ParseInt(code, 16, 32)
-			if err != nil {
-				return l.errorf("invalid unicode escape: \\u" + code)
-			}
-			growingString += string(rune(intcode))
-		} else if l.follow("\\") {
-			l.pos++
-			return l.errorf("invalid escape sequence: \\" + string(l.peek()))
 		} else {
 			growingString += string(l.peek())
 		}
@@ -418,6 +484,7 @@ func (l *tomlLexer) lexNumber() tomlLexStateFn {
 		l.accept("-")
 	}
 	pointSeen := false
+	expSeen := false
 	digitSeen := false
 	for {
 		next := l.next()
@@ -429,6 +496,11 @@ func (l *tomlLexer) lexNumber() tomlLexStateFn {
 				return l.errorf("float cannot end with a dot")
 			}
 			pointSeen = true
+		} else if next == 'e' || next == 'E' {
+			expSeen = true
+			if !l.accept("+") {
+				l.accept("-")
+			}
 		} else if isDigit(next) {
 			digitSeen = true
 		} else {
@@ -443,7 +515,7 @@ func (l *tomlLexer) lexNumber() tomlLexStateFn {
 	if !digitSeen {
 		return l.errorf("no digit in that number")
 	}
-	if pointSeen {
+	if pointSeen || expSeen {
 		l.emit(tokenFloat)
 	} else {
 		l.emit(tokenInteger)
@@ -452,7 +524,7 @@ func (l *tomlLexer) lexNumber() tomlLexStateFn {
 }
 
 func init() {
-	dateRegexp = regexp.MustCompile("^\\d{1,4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z")
+	dateRegexp = regexp.MustCompile("^\\d{1,4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?(Z|[+-]\\d{2}:\\d{2})")
 }
 
 // Entry point

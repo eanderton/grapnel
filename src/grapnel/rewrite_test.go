@@ -119,7 +119,7 @@ func TestLoadRewriteRules(t *testing.T) {
     },
   }
 
-  rules, err := LoadRewriteRules("./testfiles/grapnelrc.toml")
+  rules, err := LoadRewriteRules("testfiles/grapnelrc.toml")
   if err != nil {
     t.Errorf("Error loading rules")
     t.Errorf("%v", err)

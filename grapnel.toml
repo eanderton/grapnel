@@ -25,5 +25,6 @@ package_root = "src"
 
 [[dependencies]]
 import = "github.com/pelletier/go-toml"
-version = "= 0.2.1"
+branch = "issue-29"
+#version = "= 0.2.1"
 

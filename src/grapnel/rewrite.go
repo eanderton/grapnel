@@ -138,7 +138,6 @@ func LoadRewriteRules(filename string) (RewriteRuleArray, error) {
   }
 
   rules := RewriteRuleArray{}
-  return rules, nil
 
   if rewriteTree := tree.Get("rewrite"); rewriteTree != nil {
     for _, ruleTree := range rewriteTree.([]*toml.TomlTree) {

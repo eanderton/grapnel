@@ -43,3 +43,6 @@ import = "gopkg.in/inconshreveable/log15.v2"
 
 [[dependencies]]
 import = "github.com/lib/pq"
+
+[[dependencies]]
+import = "github.com/GeertJohan/go.rice"

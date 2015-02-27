@@ -148,6 +148,7 @@ func NewVersion(major, minor, subminor int) *Version {
   }
 }
 
+// regex parsing expressions
 var (
   any = `[^\d]*`
   sp = `\s*`

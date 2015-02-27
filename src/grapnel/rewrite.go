@@ -33,6 +33,7 @@ import (
 
 type MatchMap map[string]*regexp.Regexp
 type ReplaceMap map[string]*template.Template
+type StringMap map[string]string
 
 type RewriteRule struct {
   Matches MatchMap
@@ -52,15 +53,23 @@ func RewriteTemplate(tmpl string) (*template.Template, error) {
   return template.New("").Funcs(replaceFuncs).Parse(tmpl)
 }
 
-func SimpleRewriteRule(matchField, matchExpr, replaceField, replaceTmpl string) *RewriteRule {
-  return &RewriteRule{
-    Matches: MatchMap{
-      matchField: regexp.MustCompile(matchExpr),
-    },
-    Replacements: ReplaceMap{
-      replaceField: template.Must(RewriteTemplate(replaceTmpl)),
-    },
+func TypeResolverRule(matchField, matchExpr, typeValue string) *RewriteRule {
+  rule := NewRewriteRule()
+  rule.Matches["type"] = regexp.MustCompile(`^$`)
+  rule.Matches[matchField] = regexp.MustCompile(matchExpr)
+  rule.Replacements["type"] = template.Must(RewriteTemplate(typeValue))
+  return rule
+}
+
+func BuildRewriteRule(matches StringMap, replacements StringMap) *RewriteRule {
+  rule := NewRewriteRule()
+  for key, value := range matches {
+    rule.Matches[key] = regexp.MustCompile(value)
   }
+  for key, value := range replacements {
+    rule.Replacements[key] = template.Must(RewriteTemplate(value))
+  }
+  return rule
 }
 
 func (self *RewriteRule) AddMatch(field, expr string) error {

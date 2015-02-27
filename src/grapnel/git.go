@@ -26,8 +26,6 @@ import (
   "path"
   "fmt"
   "strings"
-  "regexp"
-  "text/template"
   "io/ioutil"
   url "grapnel/url"
   util "grapnel/util"
@@ -36,36 +34,30 @@ import (
 
 var GitRewriteRules = RewriteRuleArray {
   // rewrite rules for misc git resolvers
-  SimpleRewriteRule("scheme", `git`,           "type", `git`),
-  SimpleRewriteRule("path",   `.*\.git`,       "type", `git`),
-  SimpleRewriteRule("import", `github.com/.*`, "type", `git`),
-  SimpleRewriteRule("host",   `github.com`,    "type", `git`),
+  TypeResolverRule("scheme", `git`,           `git`),
+  TypeResolverRule("path",   `.*\.git`,       `git`),
+  TypeResolverRule("import", `github.com/.*`, `git`),
+  TypeResolverRule("host",   `github.com`,    `git`),
 
   // rewrite rules for gopkg.in
-  &RewriteRule{
-    Matches: MatchMap{
-      "host": regexp.MustCompile(`gopkg\.in`),
-      "path": regexp.MustCompile(`^/[^/]+$`),
-    },
-    Replacements: ReplaceMap{
-      "branch": template.Must(RewriteTemplate(`{{replace .path "^.*\\.(.*)$" "$1"}}`)),
-      "path":   template.Must(RewriteTemplate(`{{replace .path "^/(.*)\\..*$" "/go-$1/$1"}}`)),
-      "host":   template.Must(RewriteTemplate(`github.com`)),
-      "type":   template.Must(RewriteTemplate(`git`)),
-    },
-  },
-  &RewriteRule{
-    Matches: MatchMap{
-      "host": regexp.MustCompile(`gopkg\.in`),
-      "path": regexp.MustCompile(`^.+/.+$`),
-    },
-    Replacements: ReplaceMap{
-      "branch": template.Must(RewriteTemplate(`{{replace .path "^.*\\.(.*)$" "$1"}}`)),
-      "path":   template.Must(RewriteTemplate(`{{replace .path "^(.*)\\..*$" "$1"}}`)),
-      "host":   template.Must(RewriteTemplate(`github.com`)),
-      "type":   template.Must(RewriteTemplate(`git`)),
-    },
-  },
+  BuildRewriteRule( StringMap{
+      "host": `gopkg\.in`,
+      "path": `^/[^/]+$`,
+    }, StringMap {
+      "branch": `{{replace .path "^.*\\.(.*)$" "$1"}}`,
+      "path":   `{{replace .path "^/(.*)\\..*$" "/go-$1/$1"}}`,
+      "host":   `github.com`,
+      "type":   `git`,
+    }),
+  BuildRewriteRule( StringMap{
+      "host": `gopkg\.in`,
+      "path": `^.+/.+$`,
+    }, StringMap {
+      "branch": `{{replace .path "^.*\\.(.*)$" "$1"}}`,
+      "path":   `{{replace .path "^(.*)\\..*$" "$1"}}`,
+      "host":   `github.com`,
+      "type":   `git`,
+    }),
 }
 
 type GitSCM struct{}

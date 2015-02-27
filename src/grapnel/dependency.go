@@ -66,11 +66,6 @@ func NewDependency(importStr string, urlStr string, versionStr string) (*Depende
       dep.Import = dep.Url.Host + "/" + dep.Url.Path
     }
   }
-
-  // TODO: generate a basic URL from import
-  // TODO: consider allowing no scheme on URLs
-  // TODO: consider requiring at least an import value
-
   return dep, nil
 }
 

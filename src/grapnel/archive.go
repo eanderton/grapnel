@@ -32,9 +32,9 @@ import (
 )
 
 var ArchiveRewriteRules = RewriteRuleArray {
-  SimpleRewriteRule("path", `.*\.zip`, "type", "archive"),
-  SimpleRewriteRule("path", `.*\.tar.gz`, "type", "archive"),
-  SimpleRewriteRule("path", `.*\.tar`, "type", "archive"),
+  TypeResolverRule("path", `^.*\.zip$`, `archive`),
+  TypeResolverRule("path", `^.*\.tar.gz$`, `archive`),
+  TypeResolverRule("path", `^.*\.tar$`, `archive`),
 }
 
 type ArchiveSCM struct{}

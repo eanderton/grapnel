@@ -26,10 +26,10 @@ tag = "03ef3a3e78757fb8596ab2971c0613711eec19aa"
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/pelletier/go-toml"
-url = "http://github.com/pelletier/go-toml"
+import = "github.com/ngmoco/timber"
+url = "http://github.com/ngmoco/timber"
 branch = "master"
-tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"
+tag = "c53e208f58280c5e9e89d9c6b0c358e5ae412a1a"
 
 [[dependencies]]
 # Unversioned
@@ -42,10 +42,18 @@ tag = "f8e1ec56bdd7494d309c69681267859a6bfb7549"
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/ngmoco/timber"
-url = "http://github.com/ngmoco/timber"
+import = "github.com/GeertJohan/go.rice"
+url = "http://github.com/GeertJohan/go.rice"
 branch = "master"
-tag = "c53e208f58280c5e9e89d9c6b0c358e5ae412a1a"
+tag = "b4a18af231435326dd7995d2dd0f3ee31b81f212"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/pelletier/go-toml"
+url = "http://github.com/pelletier/go-toml"
+branch = "master"
+tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"
 
 [[dependencies]]
 # Unversioned
@@ -58,10 +66,10 @@ tag = "72d960fe96ac86dfd376b0de7ca81c0334838d0b"
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/gorilla/context"
-url = "http://github.com/gorilla/context"
+import = "github.com/spf13/pflag"
+url = "http://github.com/spf13/pflag"
 branch = "master"
-tag = "215affda49addc4c8ef7e2534915df2c8c35c6cd"
+tag = "370c3171201099fa6b466db45c8a032cbce33d8d"
 
 [[dependencies]]
 # Unversioned
@@ -74,7 +82,23 @@ tag = "043ae16291351db8465272edf465c9f388161627"
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/spf13/pflag"
-url = "http://github.com/spf13/pflag"
+import = "github.com/daaku/go.zipexe"
+url = "http://github.com/daaku/go.zipexe"
 branch = "master"
-tag = "370c3171201099fa6b466db45c8a032cbce33d8d"
+tag = "4de5c18ca1fc5294fee64721094ca90c46d26405"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/kardianos/osext"
+url = "http://github.com/kardianos/osext"
+branch = "master"
+tag = "ccfcd0245381f0c94c68f50626665eed3c6b726a"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/gorilla/context"
+url = "http://github.com/gorilla/context"
+branch = "master"
+tag = "215affda49addc4c8ef7e2534915df2c8c35c6cd"

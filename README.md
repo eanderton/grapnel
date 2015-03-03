@@ -2,61 +2,102 @@ Grapnel
 =======
 [![Build Status](https://travis-ci.org/eanderton/grapnel.svg)](https://travis-ci.org/eanderton/grapnel)
 
-A dependency management solution for the Go Programming Language.  At the moment
-only the basic 'install' mode is supported for git repositories.  Support for
-other SCM types, and other major repo sites, is planned.
+A dependency management solution for the Go Programming Language.
 
-```
-Manages dependencies for Go projects
+Grapnel is designed to solve a host of dependency management corner-cases, with a focus on
+repeatable builds without need of a vendored code graph.
 
-Usage:
-   ./grapnel [flags] [command]
+Grapnel's approach draws heavy inspiration from Bundler, CPAN, SetupUtils, Dub, and Cargo.
 
-Available Commands:
-  help    [command] Displays help for a command                         
-  install           Locked dependencies are installed and ready for use.
-  update            Latest dependencies are installed and ready for use.
-  version           Version information                                 
 
-Available Flags:
-  --debug                 Debug output                
-  --version               Displays version information
-  -c,--config  [filename] Configuration file          
-  -h,--help    [command]  Displays help for a command 
-  -q,--quiet              Quiet output                
-  -v,--verbose            Verbose output              
+Installation
+============
 
-Defaults:
-  Lock file = ./grapnel-lock.toml
-  Package file = ./grapnel.toml
-  Config file path = ./.grapnelrc, ~/.grapnelrc, /etc/.grapnelrc
-Use 'grapnel help [command]' for more information about that command.
-```
+Clone this repository and compile the program.
 
-Compilation
-===========
-
-Everything you need to build Grapnel is included in this project repo.  Simply
-Run the provided makefile:
-
-```
+```bash
 make grapnel
+
+# or
+
+go build src/cmd -o grapnel
 ```
 
-... or set GOPATH to the current directory and use 'go' directly:
+Copy the `grapnel` binary to the location of your choice, preferably somewhere on the executable path.
 
+
+How to Use
+==========
+
+### 1. Add Dependencies
+
+Add your dependencies  to `grapnel.toml`.  Dependencies support tagging, branching, semantic
+versioning, and url overriding, repository type overriding, and more.
+
+```toml
+# my grapnel file
+
+[[dependencies]]
+import = "gopkg.in/inconshreveable/log15.v2"
+version = "2.8"  # install a specific version, not just "latest" v2
+
+[[dependencies]]                                                                                      
+import = "gopkg.in/mgo.v2"                                                                            
+version = "2015.01.24"  #mgo uses dates for release numbers
+
+[[dependencies]]
+import = "github.com/spf13/viper" 
+
+[[dependencies]]
+import = "github.com/spf13/cobra"
 ```
-go build -o grapnel grapnel/cmd
+
+### 2. Update
+
+Run `grapnel update` to update the project dependencies in grapnel.toml.  This 'updates' the 
+project with the latest versions of all dependencies that match the specifications within 
+`grapnel.toml`.
+
+```bash
+$ grapnel update
 ```
 
-About
-=====
+Grapnel will also install any additional dependencies it finds within the cited imports, just like 
+`go get`.  If there is a collision or a conflict within the dependency graph, Grapnel will stop
+and tell you - it won't write anything to the src directory until it can resolve the entire graph.
 
-Grapnel is a work in progress. Release v0.2 features a very rudimentary take on
-how the tool is designed to configure dependencies from outside your source.
+In addition to installing a dependency graph, `grapnel update` generates a lockfile: 
+`grapnel-lock.toml`.  This file contains the "pinned" state of everything that was installed, 
+down to the commit hash for unversioned entries.  This includes any additional dependencies that
+were discovered.
 
-Grapnel's approach is modeled on Ruby's Bundler, with some inspiration from
-CPAN, SetupUtils, Dub, and Cargo.
+```toml
+# example lockfile snippet for spf13/cobra - your lockfile may contain many such sections
+
+[[dependencies]]                                                                                      
+# Unversioned
+type = "git"
+import = "github.com/spf13/cobra"
+url = "http://github.com/spf13/cobra"
+branch = "master"
+tag = "f8e1ec56bdd7494d309c69681267859a6bfb7549"
+```
+
+
+### 3. Code and Distribute
+
+Make sure to publish the `grapnel.toml` file, and the `grapnel-lock.toml` file with your project, so other 
+users of grapnel can reproduce your build by running `grapnel install` - this will install the exact 
+dependency graph cited in the lockfile.. 
+
+
+### 4. Maintainence
+
+When a new version of a depdendency is available, simply modify the `grapnel.toml` file to
+point at the new code.  This may involve settting the `version`, `tag`, or `branch` keys for the
+dependency in question.  Then, run `grapnel update` to get the latest code, and follow up with
+a unit-test run to make sure the upgrade was successful.
+
 
 Motivation
 ==========
@@ -90,15 +131,13 @@ at the whim of project mantainers, if and when they tag a paricular changeset
 as 'go1'.
 
 Grapnel attempts to solve all of these problems, by providing a way to
-"dial in" a specific point in time, within any given repository's published
+pinpoint a specific moment in time, within any given repository's published
 commit history.  It also understands semantic versioning in tags on a repo,
 so basic version requirements can be applied to any given dependency.
+
 
 Roadmap
 =======
 
 Grapnel will eventually cover support for Subversion, Mercurial, and Bazaar.
-
-Support for web proxies, local repository mirrors, artifactories, recursive
-dependency reconciliation, are all planned.  Please be patient while we
-add the features you're wating for.
+At the moment, only git repositories are supported.

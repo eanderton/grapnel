@@ -242,7 +242,7 @@ type URL struct {
 	Opaque   string    // encoded opaque data
 	User     *Userinfo // username and password information
 	Host     string    // host
-  Port     string
+	Port     string
 	Path     string
 	RawQuery string // encoded query values, without '?'
 	Fragment string // fragment for references, without '#'
@@ -359,11 +359,11 @@ func Parse(rawurl string) (url *URL, err error) {
 // Helper to ease parsing of URLs.  Panics if rawurl cannot be parsed.
 // Returns a valid URL object if parse succeeded.
 func MustParse(rawurl string) *URL {
-  if url, err := Parse(rawurl); err != nil {
-    panic(err)
-  } else {
-    return url
-  }
+	if url, err := Parse(rawurl); err != nil {
+		panic(err)
+	} else {
+		return url
+	}
 }
 
 // ParseRequestURI parses rawurl into a URL structure.  It assumes that
@@ -381,7 +381,7 @@ func ParseRequestURI(rawurl string) (url *URL, err error) {
 // If viaRequest is false, all forms of relative URLs are allowed.
 func parse(rawurl string, viaRequest bool) (url *URL, err error) {
 	var rest string
-  var idx int
+	var idx int
 
 	if rawurl == "" && viaRequest {
 		err = errors.New("empty url")
@@ -426,12 +426,12 @@ func parse(rawurl string, viaRequest bool) (url *URL, err error) {
 			err = errors.New("hexadecimal escape in host")
 			goto Error
 		}
-    // split iff there's a proper port to split out
-    idx = strings.LastIndex(url.Host, ":")
-    if idx > strings.LastIndex(url.Host, "]") {
-      url.Port = url.Host[idx+1:]
-      url.Host = url.Host[:idx]
-    }
+		// split iff there's a proper port to split out
+		idx = strings.LastIndex(url.Host, ":")
+		if idx > strings.LastIndex(url.Host, "]") {
+			url.Port = url.Host[idx+1:]
+			url.Host = url.Host[:idx]
+		}
 	}
 	if url.Path, err = unescape(rest, encodePath); err != nil {
 		goto Error
@@ -486,10 +486,10 @@ func (u *URL) String() string {
 			if h := u.Host; h != "" {
 				buf.WriteString(h)
 			}
-      if p := u.Port; p != ""  {
-        buf.WriteByte(':')
-        buf.WriteString(p)
-      }
+			if p := u.Port; p != "" {
+				buf.WriteByte(':')
+				buf.WriteString(p)
+			}
 		}
 		if u.Path != "" && u.Path[0] != '/' && u.Host != "" {
 			buf.WriteByte('/')
@@ -687,7 +687,7 @@ func (u *URL) ResolveReference(ref *URL) *URL {
 	if ref.Opaque != "" {
 		url.User = nil
 		url.Host = ""
-    url.Port = ""
+		url.Port = ""
 		url.Path = ""
 		return &url
 	}
@@ -701,7 +701,7 @@ func (u *URL) ResolveReference(ref *URL) *URL {
 	}
 	// The "abs_path" or "rel_path" cases.
 	url.Host = u.Host
-  url.Port = u.Port
+	url.Port = u.Port
 	url.User = u.User
 	url.Path = resolvePath(u.Path, ref.Path)
 	return &url
@@ -735,17 +735,17 @@ func (u *URL) RequestURI() string {
 
 func (u *URL) Equal(o *URL) bool {
 	if u.Scheme == o.Scheme &&
-	  u.Opaque == o.Opaque &&
-	  u.Host == o.Host &&
-    u.Port == o.Port &&
-	  u.Path == o.Path &&
-	  u.RawQuery  == o.RawQuery &&
-    u.Fragment == o.Fragment {
-    if u.User != nil && o.User != nil {
-      return u.User.String() == o.User.String()
-    } else {
-      return u.User == nil && o.User == nil
-    }
-  }
-  return false
+		u.Opaque == o.Opaque &&
+		u.Host == o.Host &&
+		u.Port == o.Port &&
+		u.Path == o.Path &&
+		u.RawQuery == o.RawQuery &&
+		u.Fragment == o.Fragment {
+		if u.User != nil && o.User != nil {
+			return u.User.String() == o.User.String()
+		} else {
+			return u.User == nil && o.User == nil
+		}
+	}
+	return false
 }

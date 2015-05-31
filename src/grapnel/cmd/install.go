@@ -1,4 +1,5 @@
 package main
+
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
 
@@ -22,94 +23,94 @@ THE SOFTWARE.
 */
 
 import (
-  . "grapnel"
-  . "grapnel/flag"
-  "os"
-  "fmt"
-  log "grapnel/log"
+	"fmt"
+	. "grapnel"
+	. "grapnel/flag"
+	log "grapnel/log"
+	"os"
 )
 
 // TODO: if no lock file can be found, then fail over to update instead
 // TODO: move lock file writing to updateFn()
 
 func installFn(cmd *Command, args []string) error {
-  configureLogging()
+	configureLogging()
 
-  if len(args) > 0 {
-    return fmt.Errorf("Too many arguments for 'install'")
-  }
+	if len(args) > 0 {
+		return fmt.Errorf("Too many arguments for 'install'")
+	}
 
-  // set unset paramters to the defaults
-  if lockFileName == "" {
-    lockFileName = defaultLockFileName
-  }
-  if targetPath == "" {
-    targetPath = defaultTargetPath
-  }
+	// set unset paramters to the defaults
+	if lockFileName == "" {
+		lockFileName = defaultLockFileName
+	}
+	if targetPath == "" {
+		targetPath = defaultTargetPath
+	}
 
-  log.Debug("lock file: %v", lockFileName)
-  log.Debug("target path: %v", targetPath)
+	log.Debug("lock file: %v", lockFileName)
+	log.Debug("target path: %v", targetPath)
 
-  // get dependencies from the lockfile
-  deplist, err := LoadGrapnelDepsfile(lockFileName)
-  if err != nil {
-    return err
-  } else if deplist == nil {
-    // TODO: fail over to update instead?
-    return fmt.Errorf("Cannot open lock file: '%s'", lockFileName)
-  }
-  log.Info("loaded %d dependency definitions", len(deplist))
+	// get dependencies from the lockfile
+	deplist, err := LoadGrapnelDepsfile(lockFileName)
+	if err != nil {
+		return err
+	} else if deplist == nil {
+		// TODO: fail over to update instead?
+		return fmt.Errorf("Cannot open lock file: '%s'", lockFileName)
+	}
+	log.Info("loaded %d dependency definitions", len(deplist))
 
-  log.Info("installing to: %v", targetPath)
-  if err := os.MkdirAll(targetPath, 0755); err != nil {
-    return err
-  }
+	log.Info("installing to: %v", targetPath)
+	if err := os.MkdirAll(targetPath, 0755); err != nil {
+		return err
+	}
 
-  libs := []*Library{}
-  // cleanup
-  defer func() {
-    for _, lib := range libs {
-      lib.Destroy()
-    }
-  }()
+	libs := []*Library{}
+	// cleanup
+	defer func() {
+		for _, lib := range libs {
+			lib.Destroy()
+		}
+	}()
 
-  // resolve all the dependencies
-  resolver, err := getResolver()
-  if err != nil {
-    return err
-  }
-  libs, err = resolver.ResolveDependencies(deplist)
-  if err != nil {
-    return err
-  }
+	// resolve all the dependencies
+	resolver, err := getResolver()
+	if err != nil {
+		return err
+	}
+	libs, err = resolver.ResolveDependencies(deplist)
+	if err != nil {
+		return err
+	}
 
-  // install all the dependencies
-  log.Info("Resolved %v dependencies. Installing.", len(libs))
-  resolver.InstallLibraries(targetPath, libs)
+	// install all the dependencies
+	log.Info("Resolved %v dependencies. Installing.", len(libs))
+	resolver.InstallLibraries(targetPath, libs)
 
-  log.Info("Install complete")
-  return nil
+	log.Info("Install complete")
+	return nil
 }
 
 var installCmd = Command{
-  Desc: "Downloads and installs locked dependencies.",
-  Help: " Installs packages at 'targetPath', from configured lock file.\n" +
-    "\nDefaults:\n" +
-    "  Lock file = " + defaultLockFileName + "\n" +
-    "  Target path = " + defaultTargetPath + "\n",
-  Flags: FlagMap {
-    "lockfile": &Flag {
-      Alias: "l",
-      Desc: "Grapnel lock file",
-      ArgDesc: "[filename]",
-      Fn: StringFlagFn(&lockFileName),
-    },
-    "target": &Flag {
-      Alias: "t",
-      Desc: "Target installation path",
-      ArgDesc: "[target]",
-      Fn: StringFlagFn(&targetPath),
-    },
-  },
-  Fn: installFn,
+	Desc: "Downloads and installs locked dependencies.",
+	Help: " Installs packages at 'targetPath', from configured lock file.\n" +
+		"\nDefaults:\n" +
+		"  Lock file = " + defaultLockFileName + "\n" +
+		"  Target path = " + defaultTargetPath + "\n",
+	Flags: FlagMap{
+		"lockfile": &Flag{
+			Alias:   "l",
+			Desc:    "Grapnel lock file",
+			ArgDesc: "[filename]",
+			Fn:      StringFlagFn(&lockFileName),
+		},
+		"target": &Flag{
+			Alias:   "t",
+			Desc:    "Target installation path",
+			ArgDesc: "[target]",
+			Fn:      StringFlagFn(&targetPath),
+		},
+	},
+	Fn: installFn,
 }

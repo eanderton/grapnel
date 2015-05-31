@@ -1,4 +1,5 @@
 package log
+
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
 
@@ -22,105 +23,106 @@ THE SOFTWARE.
 */
 
 import (
-  "log"
+	"log"
 )
 
 const (
-  DEBUG = iota
-  INFO
-  WARN
-  ERROR
-  FATAL
+	DEBUG = iota
+	INFO
+	WARN
+	ERROR
+	FATAL
 )
 
 var (
-  logLevel int = WARN
+	logLevel int = WARN
 )
 
 // Set the log level for the entire application
 func SetGlobalLogLevel(level int) {
-  logLevel = level
+	logLevel = level
 }
 
 func SetFlags(flags int) {
-  log.SetFlags(flags)
+	log.SetFlags(flags)
 }
 
 // A logger that contains a prefix
 type Logger struct {
-  prefix []string
+	prefix []string
 }
 
 func NewLogger() *Logger {
-  return &Logger{}
+	return &Logger{}
 }
 
 func (self *Logger) AddPrefix(prefix string) *Logger {
-  self.prefix = append(self.prefix, prefix)
-  return self
+	self.prefix = append(self.prefix, prefix)
+	return self
 }
 
-func (self *Logger) log(level int, args... interface{}) {
-  if len(args) == 0 || level < logLevel { return }
+func (self *Logger) log(level int, args ...interface{}) {
+	if len(args) == 0 || level < logLevel {
+		return
+	}
 
-  // determine if we're a format style print or not
-  fmtString, usePrintf := args[0].(string)
+	// determine if we're a format style print or not
+	fmtString, usePrintf := args[0].(string)
 
-  // handle fatal events specially
-  if level == FATAL {
-    if usePrintf {
-      log.Fatalf(fmtString, args[1:]...)
-    } else {
-      log.Fatal(args...)
-    }
-  } else {
-    if usePrintf {
-      log.Printf(fmtString, args[1:]...)
-    } else {
-      log.Print(args...)
-    }
-  }
+	// handle fatal events specially
+	if level == FATAL {
+		if usePrintf {
+			log.Fatalf(fmtString, args[1:]...)
+		} else {
+			log.Fatal(args...)
+		}
+	} else {
+		if usePrintf {
+			log.Printf(fmtString, args[1:]...)
+		} else {
+			log.Print(args...)
+		}
+	}
 }
 
-func (self *Logger) Debug(args... interface{}) {
-  self.log(DEBUG, args...)
+func (self *Logger) Debug(args ...interface{}) {
+	self.log(DEBUG, args...)
 }
 
-func (self *Logger) Info(args... interface{}) {
-  self.log(INFO, args...)
+func (self *Logger) Info(args ...interface{}) {
+	self.log(INFO, args...)
 }
 
-func (self *Logger) Warn(args... interface{}) {
-  self.log(WARN, args...)
+func (self *Logger) Warn(args ...interface{}) {
+	self.log(WARN, args...)
 }
 
-func (self *Logger) Error(args... interface{}) {
-  self.log(ERROR, args...)
+func (self *Logger) Error(args ...interface{}) {
+	self.log(ERROR, args...)
 }
 
-func (self *Logger) Fatal(args... interface{}) {
-  self.log(FATAL, args...)
+func (self *Logger) Fatal(args ...interface{}) {
+	self.log(FATAL, args...)
 }
 
 var RootLogger *Logger = NewLogger()
 
-func Debug(args... interface{}) {
-  RootLogger.log(DEBUG, args...)
+func Debug(args ...interface{}) {
+	RootLogger.log(DEBUG, args...)
 }
 
-func Info(args... interface{}) {
-  RootLogger.log(INFO, args...)
+func Info(args ...interface{}) {
+	RootLogger.log(INFO, args...)
 }
 
-func Warn(args... interface{}) {
-  RootLogger.log(WARN, args...)
+func Warn(args ...interface{}) {
+	RootLogger.log(WARN, args...)
 }
 
-func Error(args... interface{}) {
-  RootLogger.log(ERROR, args...)
+func Error(args ...interface{}) {
+	RootLogger.log(ERROR, args...)
 }
 
-func Fatal(args... interface{}) {
-  RootLogger.log(FATAL, args...)
+func Fatal(args ...interface{}) {
+	RootLogger.log(FATAL, args...)
 }
-

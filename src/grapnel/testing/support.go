@@ -1,4 +1,5 @@
 package testing
+
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
 
@@ -22,10 +23,10 @@ THE SOFTWARE.
 */
 
 import (
-  log "grapnel/log"
+	log "grapnel/log"
 )
 
 func InitTestLogging() {
-  log.SetGlobalLogLevel(log.DEBUG)
-  log.SetFlags(0)
+	log.SetGlobalLogLevel(log.DEBUG)
+	log.SetFlags(0)
 }

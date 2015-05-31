@@ -280,39 +280,39 @@ var urltests = []URLTest{
 		},
 		"a/b/c",
 	},
-  // Port in hostname
-  {
-    "https://foobar:443/foo/bar/baz",
-    &URL{
-      Scheme: "https",
-      Path: "/foo/bar/baz",
-      Host: "foobar",
-      Port: "443",
-    },
-    "https://foobar:443/foo/bar/baz",
-  },
-  // Port with ipv4 address
-  {
-    "https://127.0.0.1:12345/foo/bar/baz",
-    &URL{
-      Scheme: "https",
-      Path: "/foo/bar/baz",
-      Host: "127.0.0.1",
-      Port: "12345",
-    },
-    "https://127.0.0.1:12345/foo/bar/baz",
-  },
-  // Port with ipv6 address
-  {
-    "https://[::ffff:eeee]:8080/foo/bar/baz",
-    &URL{
-      Scheme: "https",
-      Path: "/foo/bar/baz",
-      Host: "[::ffff:eeee]",
-      Port: "8080",
-    },
-    "https://[::ffff:eeee]:8080/foo/bar/baz",
-  },
+	// Port in hostname
+	{
+		"https://foobar:443/foo/bar/baz",
+		&URL{
+			Scheme: "https",
+			Path:   "/foo/bar/baz",
+			Host:   "foobar",
+			Port:   "443",
+		},
+		"https://foobar:443/foo/bar/baz",
+	},
+	// Port with ipv4 address
+	{
+		"https://127.0.0.1:12345/foo/bar/baz",
+		&URL{
+			Scheme: "https",
+			Path:   "/foo/bar/baz",
+			Host:   "127.0.0.1",
+			Port:   "12345",
+		},
+		"https://127.0.0.1:12345/foo/bar/baz",
+	},
+	// Port with ipv6 address
+	{
+		"https://[::ffff:eeee]:8080/foo/bar/baz",
+		&URL{
+			Scheme: "https",
+			Path:   "/foo/bar/baz",
+			Host:   "[::ffff:eeee]",
+			Port:   "8080",
+		},
+		"https://[::ffff:eeee]:8080/foo/bar/baz",
+	},
 }
 
 // more useful string for debugging than fmt's struct printer

@@ -1,4 +1,5 @@
 package testing
+
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
 
@@ -22,100 +23,102 @@ THE SOFTWARE.
 */
 
 import (
-  "os"
-  "os/exec"
-  "bytes"
-  "bufio"
-  "strings"
-  "time"
-  "io/ioutil"
-  "path"
-  util "grapnel/util"
-  log "grapnel/log"
+	"bufio"
+	"bytes"
+	log "grapnel/log"
+	util "grapnel/util"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path"
+	"strings"
+	"time"
 )
 
 var gitDaemon *exec.Cmd
 
 func StartGitDaemon(basePath string) error {
-  if gitDaemon != nil { return nil }
+	if gitDaemon != nil {
+		return nil
+	}
 
-  cwd, err := os.Getwd()
-  if err != nil {
-    return err
-  }
-  log.Info("Using CWD: %v", basePath)
-  cmd := exec.Command("git", "daemon",
-    "--reuseaddr",
-    "--base-path=" + basePath,
-    "--port=9999",
-    "--export-all",
-    "--informative-errors",
-    "--verbose")
-  var outbuf bytes.Buffer
-  cmd.Stdout = bufio.NewWriter(&outbuf)
-  cmd.Stderr = cmd.Stdout
-  cmd.Dir = cwd
-    
-  // start the daemon
-  if err = cmd.Start(); err != nil {
-    return err
-  }
-  gitDaemon = cmd
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	log.Info("Using CWD: %v", basePath)
+	cmd := exec.Command("git", "daemon",
+		"--reuseaddr",
+		"--base-path="+basePath,
+		"--port=9999",
+		"--export-all",
+		"--informative-errors",
+		"--verbose")
+	var outbuf bytes.Buffer
+	cmd.Stdout = bufio.NewWriter(&outbuf)
+	cmd.Stderr = cmd.Stdout
+	cmd.Dir = cwd
 
-  // wait for the daemon to be ready to use
-  for {
-    data := outbuf.String()
-    if strings.Contains(data, "Ready to rumble") {
-      <- time.After(1*time.Second)  // wait a second
-      os.Stdout.WriteString(data)
-      cmd.Stdout = os.Stdout
-      cmd.Stderr = os.Stderr
-      break
-    }
-  }
+	// start the daemon
+	if err = cmd.Start(); err != nil {
+		return err
+	}
+	gitDaemon = cmd
 
-  // wait for it to halt asynchronously
-  go func() {
-    log.Info("git daemon stopped: %v", gitDaemon.Wait())
-    gitDaemon = nil
-  }()
-  
-  return nil
+	// wait for the daemon to be ready to use
+	for {
+		data := outbuf.String()
+		if strings.Contains(data, "Ready to rumble") {
+			<-time.After(1 * time.Second) // wait a second
+			os.Stdout.WriteString(data)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			break
+		}
+	}
+
+	// wait for it to halt asynchronously
+	go func() {
+		log.Info("git daemon stopped: %v", gitDaemon.Wait())
+		gitDaemon = nil
+	}()
+
+	return nil
 }
 
 func StopGitDaemon() {
-  if gitDaemon == nil {
-    return
-  }
-  gitDaemon.Process.Signal(os.Interrupt)
+	if gitDaemon == nil {
+		return
+	}
+	gitDaemon.Process.Signal(os.Interrupt)
 }
 
 func BuildTestGitRepo(repoName string) string {
-  var err error
-  var basePath string
-  if basePath, err = ioutil.TempDir("",""); err != nil {
-    panic(err)
-  }
-  repoPath := path.Join(basePath, repoName)
-  if err = os.Mkdir(repoPath,0755); err != nil{
-    panic(err)
-  }
+	var err error
+	var basePath string
+	if basePath, err = ioutil.TempDir("", ""); err != nil {
+		panic(err)
+	}
+	repoPath := path.Join(basePath, repoName)
+	if err = os.Mkdir(repoPath, 0755); err != nil {
+		panic(err)
+	}
 
-  cmd := util.NewRunContext(repoPath)
-  for _, data := range [][]string {
-    {"git", "init"},
-    {"git", "config", "user.email", "you@example.com"},
-    {"git", "config", "user.name", "Your Name"},
-    {"touch", "README"},
-    {"git", "add", "README"},
-    {"git", "commit", "-a", "-m", "first commit"},
-    {"git", "tag", "v1.0"}, 
-    {"touch", "foo.txt"},
-    {"git", "add", "foo.txt"},
-    {"git", "commit", "-a", "-m", "second commit"},
-    {"git", "tag", "v1.1"}, 
-  } {
-    cmd.MustRun(data[0], data[1:]...)
-  }
-  return basePath
+	cmd := util.NewRunContext(repoPath)
+	for _, data := range [][]string{
+		{"git", "init"},
+		{"git", "config", "user.email", "you@example.com"},
+		{"git", "config", "user.name", "Your Name"},
+		{"touch", "README"},
+		{"git", "add", "README"},
+		{"git", "commit", "-a", "-m", "first commit"},
+		{"git", "tag", "v1.0"},
+		{"touch", "foo.txt"},
+		{"git", "add", "foo.txt"},
+		{"git", "commit", "-a", "-m", "second commit"},
+		{"git", "tag", "v1.1"},
+	} {
+		cmd.MustRun(data[0], data[1:]...)
+	}
+	return basePath
 }

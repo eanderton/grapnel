@@ -1,4 +1,4 @@
-package grapnel
+package main
 
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
@@ -23,38 +23,9 @@ THE SOFTWARE.
 */
 
 import (
-	log "grapnel/log"
-	. "grapnel/testing"
-	"os"
-	"testing"
+	cmd "grapnel/cmd"
 )
 
-func TestGitSource(t *testing.T) {
-	InitTestLogging()
-
-	// construct a repo
-	basePath := BuildTestGitRepo("gitrepo")
-	defer os.Remove(basePath)
-
-	// start a daemon to serve the repo
-	defer StopGitDaemon()
-	if err := StartGitDaemon(basePath); err != nil {
-		t.Error("%v", err)
-	}
-
-	// map a dependency to the repo
-	var err error
-	var dep *Dependency
-	dep, err = NewDependency("foo/bar/baz", "git://localhost:9999/gitrepo", "1.0")
-	if err != nil {
-		t.Error("%v", err)
-	}
-
-	log.Info("version: %v", dep.VersionSpec.String())
-
-	// test the resolver
-	libsrc := &GitSCM{}
-	if _, err = libsrc.Resolve(dep); err != nil {
-		t.Error("%v", err)
-	}
+func main() {
+  cmd.GrapnelMain()
 }

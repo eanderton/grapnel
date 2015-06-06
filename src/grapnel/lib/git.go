@@ -1,4 +1,4 @@
-package grapnel
+package lib
 
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
@@ -60,21 +60,22 @@ var GitRewriteRules = RewriteRuleArray{
 		"host":   `github.com`,
 		"type":   `git`,
 	}),
-  // support for golang.org/x
-  BuildRewriteRule(StringMap{
-    "host": `golang.org`,
-    "path": `^/x.*$`,
-  }, StringMap{
-    "host": `github.org`,
-    "path": `{{ replace .path "^/x/(.*)$" "/golang/$1" }}`
-    "type": `git`,
-  }),
-  // ensure that only the user/project portion of the repo is used when calling git
-  BuildRewriteRule(StringMap{
-    "type": `git`,
-  }, StringMap{
-    "path": `{{ replace .path "^/([^/]*)/([^/]*)/(.*)" "/$1/$2" }}`,
-  }),
+	// support for golang.org/x
+	BuildRewriteRule(StringMap{
+		"host": `golang.org`,
+		"path": `^/x.*$`,
+	}, StringMap{
+		"host":   `github.org`,
+		"path":   `{{ replace .path "^/x/(.*)$" "/golang/$1" }}`,
+		"import": `{{ replace .import "^golang.org/x/([^/]*)/(.*)$" "golang.org/x/$1" }}`,
+		"type":   `git`,
+	}),
+	// ensure that only the user/project portion of the repo is used when calling git
+	BuildRewriteRule(StringMap{
+		"type": `git`,
+	}, StringMap{
+		"path": `{{ replace .path "^/([^/]*)/([^/]*)/(.*)$" "/$1/$2" }}`,
+	}),
 }
 
 type GitSCM struct{}

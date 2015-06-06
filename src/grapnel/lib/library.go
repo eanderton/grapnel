@@ -1,4 +1,4 @@
-package grapnel
+package lib
 
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
@@ -54,6 +54,7 @@ func NewLibrary(dep *Dependency) *Library {
 func (self *Library) Install(installRoot string) error {
 	// set up root target dir
 	importPath := filepath.Join(installRoot, self.Import)
+	log.Debug("installing to: %s", importPath)
 	if err := os.MkdirAll(importPath, 0755); err != nil {
 		log.Info("%s", err.Error())
 		return fmt.Errorf("Could not create target directory: '%s'", importPath)

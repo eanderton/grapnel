@@ -18,9 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-VERSION = 0.4
-PROGRAM_NAME = grapnel
+VERSION := 0.4
+PROGRAM_NAME := grapnel
 
+TARGET := bin/grapnel
 TESTTARGET := ./foobar
 PWD := $(shell pwd)
 
@@ -38,7 +39,7 @@ gofmt:
 all: unittest smoketest
 
 # Target used for custom vim quickfix bindings
-quickfix: unittest grapnel
+quickfix: unittest $(TARGET)
 
 # Start over
 clean:
@@ -48,10 +49,10 @@ clean:
 
 # Generates configuration out of data in this Makefile 
 emit-config:
-	@cat src/grapnel/config.tmpl \
+	@cat src/grapnel/cmd/config.tmpl \
 	| sed -e 's/%PROGRAM_NAME%/$(PROGRAM_NAME)/' \
 	| sed -e 's/%VERSION%/$(VERSION)/' \
-	> src/grapnel/config.go
+	> src/grapnel/cmd/config.go
 
 # Normalize 'go test' output to align with 'go build'
 # NOTE: this is a tremendous help for vim's 'quickfix' feature
@@ -70,12 +71,12 @@ unittest:
 	make go-unittest TESTPATH=grapnel
 
 # Basic command test
-smoketest: grapnel
-	./grapnel update -p src/grapnel/testfiles/smoke.toml -t $(TESTTARGET) --debug
+smoketest: $(TARGET)
+	$(TARGET) update -p src/grapnel/testfiles/smoke.toml -t $(TESTTARGET) --debug
 
 # Target command to build
-grapnel: $(GOFILES)
+$(TARGET): $(GOFILES)
 	make emit-config
-	$(GO) build -o grapnel grapnel/cmd 
+	$(GO) install grapnel
 
 .PHONY: all clean emit-config go-unittest smoketest unittest htmlcover

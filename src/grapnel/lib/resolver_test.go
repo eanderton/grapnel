@@ -1,4 +1,4 @@
-package grapnel
+package lib
 
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>

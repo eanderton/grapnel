@@ -14,24 +14,28 @@
 
 [[rewrite]]
 [rewrite.match]
+  type = "^$"
   scheme = "git"
 [rewrite.replace]
   type = "git"
 
 [[rewrite]]
 [rewrite.match]
+  type = "^$"
   path = '.*\.git'
 [rewrite.replace]
   type = "git"
 
 [[rewrite]]
 [rewrite.match]
+  type = "^$"
   import = 'github.com/.*'
 [rewrite.replace]
   type = "git"
 
 [[rewrite]]
 [rewrite.match]
+  type = "^$"
   host = "github.com"
 [rewrite.replace]
   type = "git"

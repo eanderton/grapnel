@@ -1,4 +1,4 @@
-package grapnel
+package lib
 
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
@@ -23,25 +23,38 @@ THE SOFTWARE.
 */
 
 import (
+	log "grapnel/log"
+	. "grapnel/testing"
+	"os"
 	"testing"
 )
 
-func TestNewLibrary(t *testing.T) {
+func TestGitSource(t *testing.T) {
+	InitTestLogging()
+
+	// construct a repo
+	basePath := BuildTestGitRepo("gitrepo")
+	defer os.Remove(basePath)
+
+	// start a daemon to serve the repo
+	defer StopGitDaemon()
+	if err := StartGitDaemon(basePath); err != nil {
+		t.Error("%v", err)
+	}
+
+	// map a dependency to the repo
 	var err error
 	var dep *Dependency
-	var lib *Library
-
-	dep, err = NewDependency("foo/bar/baz", "http://github.com/foo/bar", ">=1.2.3")
+	dep, err = NewDependency("foo/bar/baz", "git://localhost:9999/gitrepo", "1.0")
 	if err != nil {
-		t.Errorf("Error creating Dependency: %v", err)
+		t.Error("%v", err)
 	}
 
-	lib = NewLibrary(dep)
-	if lib.Import != "foo/bar/baz" {
-		t.Errorf("Bad value for Import: '%v'. Expected: '%v", lib.Import, "foo/bar/baz")
-	}
-	if lib.Url.String() != "http://github.com/foo/bar" {
-		t.Errorf("Bad value for url: '%v'. Expected: '%v'",
-			lib.Url.String(), "http://github.com/foo/bar")
+	log.Info("version: %v", dep.VersionSpec.String())
+
+	// test the resolver
+	libsrc := &GitSCM{}
+	if _, err = libsrc.Resolve(dep); err != nil {
+		t.Error("%v", err)
 	}
 }

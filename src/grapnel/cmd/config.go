@@ -1,4 +1,4 @@
-package grapnel
+package cmd
 
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
@@ -22,35 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-import (
-	"go/build"
-	"runtime"
-)
-
 var (
-	stdContext *build.Context
+  PROGRAM_NAME string = "grapnel"
+  VERSION string = "0.4"
 )
-
-// governs stdContext - lazy creates modified copy of Default context
-func getResolutionContext() *build.Context {
-	if stdContext == nil {
-		// reduce resolution paths to point only at root
-		stdContext = &build.Context{}
-		*stdContext = build.Default // copy
-		stdContext.GOPATH = runtime.GOROOT()
-	}
-	return stdContext
-}
-
-// checks if an import path is already globally provided
-func IsStandardDependency(importName string) bool {
-	// cgo concession
-	if importName == "C" {
-		return true
-	}
-
-	// use the build context to resolve standard import
-	context := getResolutionContext()
-	_, err := context.Import(importName, "", build.FindOnly)
-	return err == nil
-}

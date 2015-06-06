@@ -16,14 +16,14 @@ Installation
 Clone this repository and compile the program.
 
 ```bash
-make grapnel
+make all
 
 # or
 
-go build src/cmd -o grapnel
+go install grapnel
 ```
 
-Copy the `grapnel` binary to the location of your choice, preferably somewhere on the executable path.
+Copy the `bin/grapnel` binary to the location of your choice, preferably somewhere on the executable path.
 
 
 How to Use

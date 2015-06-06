@@ -1,4 +1,4 @@
-package grapnel
+package lib
 
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
@@ -98,10 +98,10 @@ func TestLoadRewriteRules(t *testing.T) {
 			},
 		},
 		// rewrite rules for misc git resolvers
-		SimpleRewriteRule("scheme", `git`, "type", `git`),
-		SimpleRewriteRule("path", `.*\.git`, "type", `git`),
-		SimpleRewriteRule("import", `github.com/.*`, "type", `git`),
-		SimpleRewriteRule("host", `github.com`, "type", `git`),
+		TypeResolverRule("scheme", `git`, `git`),
+		TypeResolverRule("path", `.*\.git`, `git`),
+		TypeResolverRule("import", `github.com/.*`, `git`),
+		TypeResolverRule("host", `github.com`, `git`),
 
 		// rewrite rules for gopkg.in
 		&RewriteRule{

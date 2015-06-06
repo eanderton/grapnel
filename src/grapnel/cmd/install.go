@@ -1,4 +1,4 @@
-package main
+package cmd
 
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 import (
 	"fmt"
-	. "grapnel"
+	. "grapnel/lib"
 	. "grapnel/flag"
 	log "grapnel/log"
 	"os"

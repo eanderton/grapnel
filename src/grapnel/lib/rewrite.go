@@ -1,3 +1,5 @@
+package lib
+
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
 
@@ -20,15 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package grapnel
-
 import (
 	"bytes"
 	"fmt"
 	toml "github.com/pelletier/go-toml"
+	log "grapnel/log"
 	"regexp"
 	"text/template"
-	//log "grapnel/log"
 )
 
 type MatchMap map[string]*regexp.Regexp
@@ -116,6 +116,8 @@ func (self *RewriteRule) Apply(dep *Dependency) error {
 	if err := dep.SetValues(newValues); err != nil {
 		return err
 	}
+
+	log.Debug("Dependency rewritten: %t", dep)
 
 	// return new dependency
 	return nil

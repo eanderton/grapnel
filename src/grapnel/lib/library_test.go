@@ -1,4 +1,4 @@
-package grapnel
+package lib
 
 /*
 Copyright (c) 2014 Eric Anderton <eric.t.anderton@gmail.com>
@@ -22,7 +22,26 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-var (
-	PROGRAM_NAME string = "grapnel"
-	VERSION      string = "0.4"
+import (
+	"testing"
 )
+
+func TestNewLibrary(t *testing.T) {
+	var err error
+	var dep *Dependency
+	var lib *Library
+
+	dep, err = NewDependency("foo/bar/baz", "http://github.com/foo/bar", ">=1.2.3")
+	if err != nil {
+		t.Errorf("Error creating Dependency: %v", err)
+	}
+
+	lib = NewLibrary(dep)
+	if lib.Import != "foo/bar/baz" {
+		t.Errorf("Bad value for Import: '%v'. Expected: '%v", lib.Import, "foo/bar/baz")
+	}
+	if lib.Url.String() != "http://github.com/foo/bar" {
+		t.Errorf("Bad value for url: '%v'. Expected: '%v'",
+			lib.Url.String(), "http://github.com/foo/bar")
+	}
+}

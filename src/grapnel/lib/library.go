@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"go/build"
 	log "grapnel/log"
-	util "grapnel/util"
 	"io"
 	"os"
 	"path"
@@ -61,7 +60,7 @@ func (self *Library) Install(installRoot string) error {
 	}
 
 	// move everything over
-	if err := util.CopyFileTree(importPath, self.TempDir); err != nil {
+	if err := CopyFileTree(importPath, self.TempDir); err != nil {
 		log.Info("%s", err.Error())
 		return fmt.Errorf("Error while walking dependency file tree")
 	}
@@ -88,7 +87,7 @@ func (self *Library) AddDependencies() error {
 	}
 
 	// figure out the provided modules in this library
-	if importPaths, err := util.GetDirectories(self.TempDir); err != nil {
+	if importPaths, err := GetDirectories(self.TempDir); err != nil {
 		return err
 	} else {
 		// fully qualify the set of paths

@@ -26,7 +26,6 @@ import (
 	"fmt"
 	log "grapnel/log"
 	url "grapnel/url"
-	util "grapnel/util"
 	"io/ioutil"
 	"os"
 	"path"
@@ -103,7 +102,7 @@ func (self *GitSCM) Resolve(dep *Dependency) (*Library, error) {
 		return nil, err
 	}
 	lib.TempDir = tempRoot
-	cmd := util.NewRunContext(tempRoot)
+	cmd := NewRunContext(tempRoot)
 
 	// use the configured url and acquire the depified branch
 	log.Info("Fetching remote data for %s", lib.Import)

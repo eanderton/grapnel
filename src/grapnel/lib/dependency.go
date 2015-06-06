@@ -25,7 +25,6 @@ THE SOFTWARE.
 import (
 	"fmt"
 	toml "github.com/pelletier/go-toml"
-	so "grapnel/stackoverflow"
 	url "grapnel/url"
 )
 
@@ -212,7 +211,7 @@ func loadDependencies(filename string) ([]*Dependency, error) {
 
 func LoadGrapnelDepsfile(searchFiles ...string) ([]*Dependency, error) {
 	for _, filename := range searchFiles {
-		if so.Exists(filename) {
+		if Exists(filename) {
 			if deplist, err := loadDependencies(filename); err != nil {
 				return nil, err
 			} else {

@@ -10,22 +10,6 @@ tag = "release.r60"
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/gorilla/mux"
-url = "http://github.com/gorilla/mux"
-branch = "master"
-tag = "47e8f450ef38c857cdd922ec08862ca9d65a1c6d"
-
-[[dependencies]]
-# Unversioned
-type = "git"
-import = "gopkg.in/inconshreveable/log15.v2"
-url = "http://github.com/inconshreveable/log15"
-branch = "v2"
-tag = "dc7890abeaadcb6a79a9a5ee30bc1897bbf97713"
-
-[[dependencies]]
-# Unversioned
-type = "git"
 import = "github.com/ngmoco/timber"
 url = "http://github.com/ngmoco/timber"
 branch = "master"
@@ -34,10 +18,10 @@ tag = "c53e208f58280c5e9e89d9c6b0c358e5ae412a1a"
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/pelletier/go-toml"
-url = "http://github.com/pelletier/go-toml"
+import = "github.com/gorilla/mux"
+url = "http://github.com/gorilla/mux"
 branch = "master"
-tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"
+tag = "47e8f450ef38c857cdd922ec08862ca9d65a1c6d"
 
 [[dependencies]]
 # Unversioned
@@ -50,6 +34,14 @@ tag = "42fe5e1e4e358b413e3e1a7b2243ec8599209107"
 [[dependencies]]
 # Unversioned
 type = "git"
+import = "gopkg.in/inconshreveable/log15.v2"
+url = "http://github.com/inconshreveable/log15"
+branch = "v2"
+tag = "dc7890abeaadcb6a79a9a5ee30bc1897bbf97713"
+
+[[dependencies]]
+# Unversioned
+type = "git"
 import = "github.com/spf13/cobra"
 url = "http://github.com/spf13/cobra"
 branch = "master"
@@ -58,10 +50,34 @@ tag = "312092086bed4968099259622145a0c9ae280064"
 [[dependencies]]
 # Unversioned
 type = "git"
+import = "github.com/pelletier/go-toml"
+url = "http://github.com/pelletier/go-toml"
+branch = "master"
+tag = "23d36c08ab90f4957ae8e7d781907c368f5454dd"
+
+[[dependencies]]
+# Unversioned
+type = "git"
 import = "github.com/lib/pq"
 url = "http://github.com/lib/pq"
 branch = "master"
 tag = "a8d8d01c4f91602f876bf5aa210274e8203a6b45"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/kardianos/osext"
+url = "http://github.com/kardianos/osext"
+branch = "master"
+tag = "6e7f843663477789fac7c02def0d0909e969b4e5"
+
+[[dependencies]]
+# Unversioned
+type = "git"
+import = "github.com/mattn/go-colorable"
+url = "http://github.com/mattn/go-colorable"
+branch = "master"
+tag = "d67e0b7d1797975196499f79bcc322c08b9f218b"
 
 [[dependencies]]
 # Unversioned
@@ -90,23 +106,7 @@ tag = "5644820622454e71517561946e3d94b9f9db6842"
 [[dependencies]]
 # Unversioned
 type = "git"
-import = "github.com/mattn/go-colorable"
-url = "http://github.com/mattn/go-colorable"
-branch = "master"
-tag = "d67e0b7d1797975196499f79bcc322c08b9f218b"
-
-[[dependencies]]
-# Unversioned
-type = "git"
 import = "github.com/daaku/go.zipexe"
 url = "http://github.com/daaku/go.zipexe"
 branch = "master"
 tag = "a5fe2436ffcb3236e175e5149162b41cd28bd27d"
-
-[[dependencies]]
-# Unversioned
-type = "git"
-import = "github.com/kardianos/osext"
-url = "http://github.com/kardianos/osext"
-branch = "master"
-tag = "6e7f843663477789fac7c02def0d0909e969b4e5"

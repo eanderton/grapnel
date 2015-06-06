@@ -27,7 +27,6 @@ import (
 	. "grapnel/lib"
 	. "grapnel/flag"
 	log "grapnel/log"
-	so "grapnel/stackoverflow"
 	"os"
 	"strings"
 )
@@ -66,17 +65,17 @@ func getResolver() (*Resolver, error) {
 
 	// find/validate configuration file
 	if configFileName != "" {
-		if !so.Exists(configFileName) {
+		if !Exists(configFileName) {
 			return nil, fmt.Errorf("could not locate config file: %s", configFileName)
 		}
 	} else {
 		// search in standard locations
 		for _, item := range configFilePath {
-			path, err := so.AbsolutePath(item)
+			path, err := AbsolutePath(item)
 			if err != nil {
 				return nil, err
 			}
-			if so.Exists(path) {
+			if Exists(path) {
 				configFileName = path
 				break
 			}

@@ -66,7 +66,6 @@ unittest:
 	# run unittests and coverage analysis
 	make go-unittest TESTPATH=grapnel/flag
 	make go-unittest TESTPATH=grapnel/log
-	make go-unittest TESTPATH=grapnel/util
 	make go-unittest TESTPATH=grapnel/url
 	make go-unittest TESTPATH=grapnel
 

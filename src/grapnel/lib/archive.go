@@ -25,7 +25,6 @@ THE SOFTWARE.
 import (
 	"fmt"
 	log "grapnel/log"
-	"grapnel/util"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -49,7 +48,7 @@ func (self *ArchiveSCM) Resolve(dep *Dependency) (*Library, error) {
 		return nil, err
 	}
 	lib.TempDir = tempRoot
-	cmd := util.NewRunContext(tempRoot)
+	cmd := NewRunContext(tempRoot)
 
 	// prep archive file for write
 	filename := filepath.Join(tempRoot, filepath.Base(lib.Dependency.Url.Path))

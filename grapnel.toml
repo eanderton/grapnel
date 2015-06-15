@@ -19,12 +19,11 @@
 # THE SOFTWARE.
 
 [package]
-version = "0.2"
+version = "0.4"
 provides = [ "grapnel" ]
 package_root = "src"
 
 [[dependencies]]
 import = "github.com/pelletier/go-toml"
-branch = "issue-29"
-#version = "= 0.2.1"
+tag = "222e90a"
 

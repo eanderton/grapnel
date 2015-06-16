@@ -78,4 +78,4 @@ $(TARGET): $(GOFILES)
 	make emit-config
 	$(GO) install grapnel
 
-.PHONY: all clean emit-config go-unittest smoketest unittest htmlcover
+.PHONY: all clean emit-config go-unittest smoketest unittest

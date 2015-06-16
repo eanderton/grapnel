@@ -44,8 +44,8 @@ var GitRewriteRules = RewriteRuleArray{
 		"host": `gopkg\.in`,
 		"path": `^/[^/]+$`,
 	}, StringMap{
-		"branch": `{{replace .path "^.*\\.(.*)$" "$1"}}`,
-		"path":   `{{replace .path "^/(.*)\\..*$" "/go-$1/$1"}}`,
+		"branch": `{{ replace .path "^.*\\.(.*)$" "$1" }}`,
+		"path":   `{{ replace .path "^/(.*)\\..*$" "/go-$1/$1" }}`,
 		"host":   `github.com`,
 		"type":   `git`,
 	}),
@@ -54,8 +54,8 @@ var GitRewriteRules = RewriteRuleArray{
 		"host": `gopkg\.in`,
 		"path": `^.+/.+$`,
 	}, StringMap{
-		"branch": `{{replace .path "^.*\\.(.*)$" "$1"}}`,
-		"path":   `{{replace .path "^(.*)\\..*$" "$1"}}`,
+		"branch": `{{ replace .path "^.*\\.(.*)$" "$1" }}`,
+		"path":   `{{ replace .path "^(.*)\\..*$" "$1" }}`,
 		"host":   `github.com`,
 		"type":   `git`,
 	}),

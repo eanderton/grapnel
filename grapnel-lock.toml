@@ -4,5 +4,5 @@
 type = "git"
 import = "github.com/pelletier/go-toml"
 url = "http://github.com/pelletier/go-toml"
-branch = "issue-29"
-tag = "222e90a7d3d7016b4a95a3de6cefe26d40653af1"
+branch = "master"
+tag = "222e90a"

@@ -28,7 +28,7 @@ correct version of that dependency.
 
 # Basic Use: Imitating go get
 
-The most basic expression of a Dependency Rule is to mock the behavior of
+The most basic expression of a Dependency Rule is to imitate the behavior of
 `go get`.  In general, this means downloading the leading commit (`HEAD`) on a 
 repository:
 

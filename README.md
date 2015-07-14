@@ -1,5 +1,7 @@
 Grapnel
 =======
+
+[![Join the chat at https://gitter.im/eanderton/grapnel](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/eanderton/grapnel?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [Version 0.4](https://github.com/eanderton/grapnel/releases)
 
 [![Build Status](https://travis-ci.org/eanderton/grapnel.svg)](https://travis-ci.org/eanderton/grapnel)

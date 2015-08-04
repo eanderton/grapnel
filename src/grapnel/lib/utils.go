@@ -2,13 +2,13 @@ package lib
 
 import (
 	"fmt"
+	log "grapnel/log"
 	"io"
-	"strings"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	log "grapnel/log"
+	"strings"
 )
 
 // https://stackoverflow.com/questions/21060945/simple-way-to-copy-a-file-in-golang
@@ -42,6 +42,19 @@ func LinkFile(src, dst string) (err error) {
 		return
 	}
 	return
+}
+
+// CopySymlink copies the symlink  named src to the symlink named
+// by dst, keeping the same target.
+// The file will be created if it does not already exist. If the
+// destination file exists, all it's contents will be replaced by the contents
+// of the source file.
+func CopySymlink(src, dst string) (err error) {
+	target, err := os.Readlink(src)
+	if err != nil {
+		return err
+	}
+	return os.Symlink(target, dst)
 }
 
 // CopyFileContents copies the contents of the file named src to the file named
@@ -164,7 +177,11 @@ func CopyFileTree(dest string, src string) error {
 			}
 		} else {
 			log.Debug("Copying: %s", destPath)
-			if err := CopyFileContents(path, destPath); err != nil {
+			if (info.Mode() & os.ModeSymlink) == os.ModeSymlink {
+				if err := CopySymlink(path, destPath); err != nil {
+					return fmt.Errorf("Could not copy symlink '%s' to '%s'", path, destPath)
+				}
+			} else if err := CopyFileContents(path, destPath); err != nil {
 				return fmt.Errorf("Could not copy file '%s' to '%s'", path, destPath)
 			}
 		}

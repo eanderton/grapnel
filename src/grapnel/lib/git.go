@@ -64,7 +64,7 @@ var GitRewriteRules = RewriteRuleArray{
 		"host": `golang.org`,
 		"path": `^/x.*$`,
 	}, StringMap{
-		"host":   `github.org`,
+		"host":   `github.com`,
 		"path":   `{{ replace .path "^/x/(.*)$" "/golang/$1" }}`,
 		"import": `{{ replace .import "^golang.org/x/([^/]*)/(.*)$" "golang.org/x/$1" }}`,
 		"type":   `git`,

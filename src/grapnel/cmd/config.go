@@ -23,6 +23,6 @@ THE SOFTWARE.
 */
 
 var (
-  PROGRAM_NAME string = "grapnel"
-  VERSION string = "0.4"
+	PROGRAM_NAME string = "grapnel"
+	VERSION      string = "0.4"
 )

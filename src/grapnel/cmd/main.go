@@ -24,8 +24,8 @@ THE SOFTWARE.
 
 import (
 	"fmt"
-	. "grapnel/lib"
 	. "grapnel/flag"
+	. "grapnel/lib"
 	log "grapnel/log"
 	"os"
 	"strings"

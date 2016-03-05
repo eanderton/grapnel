@@ -27,5 +27,5 @@ import (
 )
 
 func main() {
-  cmd.GrapnelMain()
+	cmd.GrapnelMain()
 }
